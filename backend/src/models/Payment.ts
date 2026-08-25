@@ -5,6 +5,7 @@ import type { PaymentPurpose, PaymentStatus, PaymentProviderName } from '../type
 export interface PaymentAttributes {
   id: string
   user_id: string
+  order_id: string | null
   reference: string
   provider: PaymentProviderName
   provider_reference: string | null
@@ -21,6 +22,7 @@ export interface PaymentAttributes {
 type PaymentCreationAttributes = Optional<
   PaymentAttributes,
   | 'id'
+  | 'order_id'
   | 'provider_reference'
   | 'currency'
   | 'status'
@@ -33,6 +35,7 @@ type PaymentCreationAttributes = Optional<
 class Payment extends Model<PaymentAttributes, PaymentCreationAttributes> {
   declare id: string
   declare user_id: string
+  declare order_id: string | null
   declare reference: string
   declare provider: PaymentProviderName
   declare provider_reference: string | null
@@ -49,6 +52,7 @@ class Payment extends Model<PaymentAttributes, PaymentCreationAttributes> {
     return {
       id: this.id,
       userId: this.user_id,
+      orderId: this.order_id,
       reference: this.reference,
       provider: this.provider,
       providerReference: this.provider_reference,
@@ -76,6 +80,13 @@ Payment.init(
       allowNull: false,
       references: { model: 'users', key: 'id' },
       onDelete: 'RESTRICT',
+      onUpdate: 'CASCADE',
+    },
+    order_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'orders', key: 'id' },
+      onDelete: 'SET NULL',
       onUpdate: 'CASCADE',
     },
     reference: {
@@ -147,6 +158,7 @@ Payment.init(
     updatedAt: 'updated_at',
     indexes: [
       { name: 'idx_payments_user_id', fields: ['user_id'] },
+      { name: 'idx_payments_order_id', fields: ['order_id'] },
       { name: 'idx_payments_reference', fields: ['reference'], unique: true },
       { name: 'idx_payments_status', fields: ['status'] },
       { name: 'idx_payments_purpose', fields: ['purpose'] },

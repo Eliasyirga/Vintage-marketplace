@@ -43,17 +43,19 @@ export type EntitlementStatus = 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'REVOKED'
 export type SubscriptionStatus = 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING'
 
 export type AdPlacement =
-  | 'HOME_TOP'
-  | 'MARKETPLACE_MIDDLE'
-  | 'MARKETPLACE_BOTTOM'
+  | 'MARKETPLACE_BANNER'
+  | 'MARKETPLACE_FEATURED'
+  | 'MARKETPLACE_SIDEBAR'
 
 export type AdStatus =
   | 'DRAFT'
   | 'PENDING_PAYMENT'
+  | 'PAYMENT_VERIFIED'
   | 'PENDING_REVIEW'
+  | 'APPROVED'
+  | 'REJECTED'
   | 'ACTIVE'
   | 'PAUSED'
-  | 'REJECTED'
   | 'EXPIRED'
   | 'CANCELLED'
 

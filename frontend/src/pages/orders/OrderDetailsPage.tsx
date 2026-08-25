@@ -13,8 +13,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
-import { Navbar } from '../../components/layout/Navbar'
-import { Footer } from '../../components/layout/Footer'
+import { WorkspaceHeader } from '../../components/layout/WorkspaceHeader'
 import { OrderTimeline } from '../../components/orders/OrderTimeline'
 import { DeliveryTracking } from '../../components/orders/DeliveryTracking'
 import { MeetingDetails } from '../../components/orders/MeetingDetails'
@@ -141,32 +140,40 @@ export default function OrderDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-100 flex flex-col justify-between">
-        <Navbar />
-        <div className="flex flex-col items-center justify-center py-28 space-y-4">
+      <div className="min-h-screen bg-stone-100 flex flex-col font-sans">
+        <WorkspaceHeader
+          title="Order Details"
+          backUrl={isSeller ? '/seller/orders' : '/account/orders'}
+          backLabel="Orders"
+        />
+        <div className="flex-1 flex flex-col items-center justify-center py-28 space-y-4">
           <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
           <p className="text-sm font-bold text-stone-600">Loading order details...</p>
         </div>
-        <Footer />
       </div>
     )
   }
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-stone-100 flex flex-col justify-between">
-        <Navbar />
-        <div className="max-w-md mx-auto my-20 p-8 bg-white rounded-3xl border border-stone-200 text-center space-y-4">
-          <AlertCircle className="w-12 h-12 text-amber-600 mx-auto" />
-          <h2 className="text-lg font-bold text-stone-900">Order Not Found</h2>
-          <Link
-            to="/account/orders"
-            className="inline-block px-5 py-2.5 rounded-xl bg-amber-600 text-white text-xs font-bold"
-          >
-            Go to My Orders
-          </Link>
+      <div className="min-h-screen bg-stone-100 flex flex-col font-sans">
+        <WorkspaceHeader
+          title="Order Details"
+          backUrl={isSeller ? '/seller/orders' : '/account/orders'}
+          backLabel="Orders"
+        />
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="max-w-md w-full my-10 p-8 bg-white rounded-3xl border border-stone-200 text-center space-y-4 shadow-sm">
+            <AlertCircle className="w-12 h-12 text-amber-600 mx-auto" />
+            <h2 className="text-lg font-bold text-stone-900">Order Not Found</h2>
+            <Link
+              to={isSeller ? '/seller/orders' : '/account/orders'}
+              className="inline-block px-5 py-2.5 rounded-xl bg-amber-600 text-white text-xs font-bold shadow-xs"
+            >
+              Go to Orders
+            </Link>
+          </div>
         </div>
-        <Footer />
       </div>
     )
   }
@@ -176,10 +183,15 @@ export default function OrderDetailsPage() {
   const firstImage = order.listing?.images?.[0]?.url
 
   return (
-    <div className="min-h-screen bg-stone-100 flex flex-col justify-between font-sans">
-      <Navbar />
+    <div className="min-h-screen bg-stone-100 flex flex-col font-sans">
+      <WorkspaceHeader
+        title={`Order #${order.orderNumber || order.id.slice(0, 8).toUpperCase()}`}
+        subtitle={`Placed on ${new Date(order.createdAt).toLocaleDateString()}`}
+        backUrl={isSeller ? '/seller/orders' : '/account/orders'}
+        backLabel={isSeller ? 'Seller Orders' : 'My Orders'}
+      />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8 flex-1">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full space-y-6 sm:space-y-8 flex-1">
         {/* Navigation & Status Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
@@ -508,8 +520,6 @@ export default function OrderDetailsPage() {
           </div>
         </div>
       )}
-
-      <Footer />
     </div>
   )
 }

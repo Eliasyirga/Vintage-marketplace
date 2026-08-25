@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import Hero from '../components/home/Hero'
@@ -14,6 +16,20 @@ import { RecommendedForYou } from '../components/recommendations/RecommendedForY
 import { AdvertisementSlot } from '../components/advertisements/AdvertisementSlot'
 
 export default function Home() {
+  const location = useLocation()
+
+  useEffect(() => {
+    if (location.hash) {
+      const targetId = location.hash.replace('#', '')
+      const element = document.getElementById(targetId)
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth' })
+        }, 120)
+      }
+    }
+  }, [location.hash])
+
   return (
     <div className="min-h-screen flex flex-col bg-stone-50 text-stone-900 selection:bg-amber-500 selection:text-white">
       {/* Navbar */}
@@ -24,7 +40,7 @@ export default function Home() {
         <Hero />
         <TrustFeatures />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <AdvertisementSlot placement="HOME_TOP" />
+          <AdvertisementSlot placement="MARKETPLACE_BANNER" />
         </div>
         <CategorySection />
         <FeaturedListings />

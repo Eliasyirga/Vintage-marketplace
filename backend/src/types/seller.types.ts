@@ -14,6 +14,9 @@ export interface PublicSellerProfile {
   city: string | null
   subCity: string | null
   neighborhood: string | null
+  rating: number | null
+  totalSales: number
+  isActive: boolean
   /** Derived from User.created_at */
   memberSince: Date
   /** True if email OR phone verified */
@@ -21,7 +24,6 @@ export interface PublicSellerProfile {
   isEmailVerified: boolean
   isPhoneVerified: boolean
   isFaydaVerified: boolean
-  isFaceVerified: boolean
   activeListings: number
   soldListings: number
 }
@@ -33,6 +35,7 @@ export interface UpsertSellerProfileInput {
   city?: string
   subCity?: string
   neighborhood?: string
+  isActive?: boolean
 }
 
 export interface SellerListingsQuery {

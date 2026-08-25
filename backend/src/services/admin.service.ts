@@ -78,7 +78,7 @@ export async function getUsers(filters: GetUsersFilters) {
     where,
     attributes: [
       'id', 'full_name', 'email', 'phone', 'role', 'status',
-      'is_email_verified', 'is_phone_verified', 'is_fayda_verified', 'is_face_verified',
+      'is_email_verified', 'is_phone_verified', 'is_fayda_verified',
       'created_at',
     ],
     order: [['created_at', 'DESC']],

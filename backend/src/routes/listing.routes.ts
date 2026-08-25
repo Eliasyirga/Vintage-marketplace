@@ -14,6 +14,8 @@ import {
 const router = Router()
 
 router.get('/', listingController.getListings)
+// /limits/me MUST be registered before /:id to avoid wildcard conflict
+router.get('/limits/me', requireAuth, listingController.getListingLimits)
 router.get('/:id/similar', recommendationController.getSimilarListings)
 router.get('/:id', optionalAuth, listingController.getListingById)
 

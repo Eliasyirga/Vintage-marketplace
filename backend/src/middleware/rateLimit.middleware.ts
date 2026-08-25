@@ -11,7 +11,7 @@ const rateLimitResponse = (message: string) => ({
  */
 export const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300,
+  max: 5000,
   standardHeaders: true,
   legacyHeaders: false,
   message: rateLimitResponse('Too many requests. Please try again later.'),
@@ -128,3 +128,30 @@ export const adTrackingLimiter = rateLimit({
   legacyHeaders: false,
   message: rateLimitResponse('Tracking rate limit exceeded.'),
 })
+
+/**
+ * Message sending limiter — protects against chat spam and flood abuse.
+ * 30 messages per IP/user per 1 minute window.
+ */
+export const messageRateLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: rateLimitResponse('Too many messages sent. Please slow down and wait a minute.'),
+})
+
+/**
+ * Fayda verification rate limiter.
+ * 10 attempts per IP/user per 1 hour window.
+ */
+export const faydaVerificationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: rateLimitResponse(
+    'Too many Fayda verification attempts. Please wait an hour before trying again.',
+  ),
+})
+

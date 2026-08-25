@@ -217,7 +217,6 @@ export async function seedListings(): Promise<void> {
       is_email_verified: true,
       is_phone_verified: true,
       is_fayda_verified: true,
-      is_face_verified: false,
     })
   }
 

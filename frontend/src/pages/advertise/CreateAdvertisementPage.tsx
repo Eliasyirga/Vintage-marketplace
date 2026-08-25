@@ -1,15 +1,18 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, type ChangeEvent } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
-  Sparkles,
   ExternalLink,
   Layers,
   Flame,
   CreditCard,
   Lock,
+  Upload,
+  Image as ImageIcon,
+  X,
+  Sidebar,
 } from 'lucide-react'
 import Navbar from '../../components/layout/Navbar'
 import Footer from '../../components/layout/Footer'
@@ -18,11 +21,42 @@ import * as adService from '../../services/advertisement.service'
 import * as paymentService from '../../services/payment.service'
 import { toast } from 'react-hot-toast'
 
+const PLACEMENT_OPTIONS: {
+  id: AdPlacement
+  title: string
+  desc: string
+  ratio: string
+  icon: typeof Flame
+}[] = [
+  {
+    id: 'MARKETPLACE_BANNER',
+    title: 'Top Banner',
+    desc: 'High-impact full-width banner at the top of Home and Marketplace.',
+    ratio: '16:7',
+    icon: Flame,
+  },
+  {
+    id: 'MARKETPLACE_FEATURED',
+    title: 'In-Feed Feature',
+    desc: 'Native card embedded directly between browse listings.',
+    ratio: '16:9',
+    icon: Layers,
+  },
+  {
+    id: 'MARKETPLACE_SIDEBAR',
+    title: 'Desktop Sidebar',
+    desc: 'Persistent desktop visibility beside search filters.',
+    ratio: '1:1',
+    icon: Sidebar,
+  },
+]
+
 export default function CreateAdvertisementPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
-  const initialPlacement = (searchParams.get('placement') as AdPlacement) || 'HOME_TOP'
+  const initialPlacement =
+    (searchParams.get('placement') as AdPlacement) || 'MARKETPLACE_BANNER'
   const initialPlanId = searchParams.get('planId') || ''
 
   const [step, setStep] = useState<1 | 2 | 3>(1)
@@ -35,9 +69,12 @@ export default function CreateAdvertisementPage() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [targetUrl, setTargetUrl] = useState('https://')
-  const [imageUrl, setImageUrl] = useState('')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [paymentProvider, setPaymentProvider] = useState<'MOCK' | 'CHAPA' | 'TELEBIRR'>('MOCK')
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     adService
@@ -45,7 +82,8 @@ export default function CreateAdvertisementPage() {
       .then((data) => {
         setPlans(data)
         if (!selectedPlanId && data.length > 0) {
-          const match = data.find((p) => p.features?.includes(placement)) || data[0]
+          const match =
+            data.find((p) => p.features?.includes(placement)) || data[0]
           setSelectedPlanId(match.id)
         }
       })
@@ -56,8 +94,14 @@ export default function CreateAdvertisementPage() {
   }, [placement])
 
   // Filter plans available for current placement
-  const placementPlans = plans.filter((p) => p.features?.includes(placement))
-  const selectedPlan = plans.find((p) => p.id === selectedPlanId) || placementPlans[0]
+  const placementPlans = plans.filter(
+    (p) =>
+      p.features?.includes(placement) ||
+      !p.features?.length ||
+      p.type === 'ADVERTISEMENT',
+  )
+  const selectedPlan =
+    plans.find((p) => p.id === selectedPlanId) || placementPlans[0]
 
   // Validate URL on client side
   const validateUrl = (url: string): boolean => {
@@ -66,6 +110,22 @@ export default function CreateAdvertisementPage() {
       return parsed.protocol === 'https:' || parsed.protocol === 'http:'
     } catch {
       return false
+    }
+  }
+
+  const handleImageFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        toast.error('Only JPEG, PNG, and WEBP image files are allowed.')
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image must be 5MB or smaller.')
+        return
+      }
+      setImageFile(file)
+      setImagePreviewUrl(URL.createObjectURL(file))
     }
   }
 
@@ -86,29 +146,29 @@ export default function CreateAdvertisementPage() {
       toast.error('Please provide a valid web address starting with https:// or http://')
       return
     }
-    if (!imageUrl.trim()) {
-      toast.error('Please provide a banner creative image URL.')
+    if (!imageFile) {
+      toast.error('Please upload a creative banner image.')
       return
     }
     setStep(3)
   }
 
   const handleCreateAndPay = async () => {
-    if (!selectedPlan) return
+    if (!selectedPlan || !imageFile) return
 
     setIsSubmitting(true)
     try {
-      // 1. Create Advertisement in PENDING_PAYMENT
+      // 1. Create Advertisement in PENDING_PAYMENT (uploads creative directly to Cloudinary)
       const ad = await adService.createAdvertisement({
         planId: selectedPlan.id,
         title: title.trim(),
         description: description.trim() || undefined,
-        image: imageUrl.trim(),
+        imageFile,
         targetUrl: targetUrl.trim(),
         placement,
       })
 
-      // 2. Initialize Payment
+      // 2. Initialize Payment via centralized payment service
       const paymentRes = await paymentService.initializePayment({
         purpose: 'ADVERTISEMENT',
         planId: selectedPlan.id,
@@ -117,9 +177,8 @@ export default function CreateAdvertisementPage() {
         returnUrl: `${window.location.origin}/advertise/my-ads?adCreated=true`,
       })
 
-      toast.success('Advertisement registered! Redirecting to payment...')
+      toast.success('Advertisement creative saved! Proceeding to payment...')
 
-      // If mock checkout provider:
       if (paymentProvider === 'MOCK') {
         navigate(`/checkout/mock?ref=${paymentRes.payment.reference}`)
       } else if (paymentRes.checkoutUrl) {
@@ -128,7 +187,9 @@ export default function CreateAdvertisementPage() {
         navigate(`/checkout/mock?ref=${paymentRes.payment.reference}`)
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || err.message || 'Failed to create advertisement.')
+      toast.error(
+        err.response?.data?.message || err.message || 'Failed to create advertisement.',
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -196,26 +257,7 @@ export default function CreateAdvertisementPage() {
                   1. Select Marketplace Placement Slot
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {[
-                    {
-                      id: 'HOME_TOP' as AdPlacement,
-                      title: 'HOME_TOP',
-                      desc: 'Homepage Top Wide Banner',
-                      icon: Flame,
-                    },
-                    {
-                      id: 'MARKETPLACE_MIDDLE' as AdPlacement,
-                      title: 'MARKETPLACE_MIDDLE',
-                      desc: 'In-Feed Grid Native Banner',
-                      icon: Layers,
-                    },
-                    {
-                      id: 'MARKETPLACE_BOTTOM' as AdPlacement,
-                      title: 'MARKETPLACE_BOTTOM',
-                      desc: 'Catalog Bottom Spotlight',
-                      icon: Sparkles,
-                    },
-                  ].map((p) => {
+                  {PLACEMENT_OPTIONS.map((p) => {
                     const isSelected = placement === p.id
                     const Icon = p.icon
                     return (
@@ -224,7 +266,9 @@ export default function CreateAdvertisementPage() {
                         type="button"
                         onClick={() => {
                           setPlacement(p.id)
-                          const nextPlan = plans.find((item) => item.features?.includes(p.id))
+                          const nextPlan = plans.find((item) =>
+                            item.features?.includes(p.id),
+                          )
                           if (nextPlan) setSelectedPlanId(nextPlan.id)
                         }}
                         className={`p-4 rounded-2xl text-left border-2 transition-all flex flex-col justify-between ${
@@ -234,12 +278,23 @@ export default function CreateAdvertisementPage() {
                         }`}
                       >
                         <div className="flex items-center justify-between mb-2">
-                          <Icon className={`w-5 h-5 ${isSelected ? 'text-amber-600' : 'text-stone-400'}`} />
-                          {isSelected && <CheckCircle2 className="w-4 h-4 text-amber-600" />}
+                          <Icon
+                            className={`w-5 h-5 ${
+                              isSelected ? 'text-amber-600' : 'text-stone-400'
+                            }`}
+                          />
+                          {isSelected && (
+                            <CheckCircle2 className="w-4 h-4 text-amber-600" />
+                          )}
                         </div>
                         <div>
-                          <p className="font-extrabold text-sm text-stone-900">{p.title}</p>
+                          <p className="font-extrabold text-sm text-stone-900">
+                            {p.title}
+                          </p>
                           <p className="text-xs text-stone-500 mt-0.5">{p.desc}</p>
+                          <span className="inline-block text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md mt-2">
+                            Aspect Ratio: {p.ratio}
+                          </span>
                         </div>
                       </button>
                     )
@@ -259,7 +314,8 @@ export default function CreateAdvertisementPage() {
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {placementPlans.map((plan) => {
-                      const isCur = (selectedPlan?.id || selectedPlanId) === plan.id
+                      const isCur =
+                        (selectedPlan?.id || selectedPlanId) === plan.id
                       return (
                         <button
                           key={plan.id}
@@ -302,7 +358,7 @@ export default function CreateAdvertisementPage() {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-xs font-black uppercase tracking-wider text-stone-700">
-                    Advertisement Title <span className="text-red-500">*</span>
+                    Advertisement Headline / Title <span className="text-red-500">*</span>
                   </label>
                   <span className="text-[10px] text-stone-400 font-bold">
                     {title.length}/150
@@ -313,7 +369,7 @@ export default function CreateAdvertisementPage() {
                   maxLength={150}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Vintage Leather Jackets - 20% Off This Weekend"
+                  placeholder="e.g. Vintage Leather Jackets — 20% Off This Weekend"
                   className="w-full px-4 py-3 rounded-2xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-sm font-semibold"
                 />
               </div>
@@ -333,7 +389,7 @@ export default function CreateAdvertisementPage() {
                   maxLength={300}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="e.g. Discover authentic hand-stitched leather jackets crafted in Addis Ababa. Free delivery on orders over 2,000 ETB."
+                  placeholder="e.g. Discover authentic hand-stitched leather jackets crafted in Addis Ababa. Fast delivery across Ethiopia."
                   className="w-full px-4 py-2.5 rounded-2xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-sm font-medium resize-none"
                 />
               </div>
@@ -348,43 +404,74 @@ export default function CreateAdvertisementPage() {
                     type="url"
                     value={targetUrl}
                     onChange={(e) => setTargetUrl(e.target.value)}
-                    placeholder="https://yourstore.com/promo or https://vintagethiopia.com/listings/xyz"
+                    placeholder="https://yourbrand.com/promo or https://vintagemarketplace.com/sellers/xyz"
                     className="w-full pl-4 pr-10 py-3 rounded-2xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-sm font-mono text-stone-800"
                   />
                   <ExternalLink className="w-4 h-4 text-stone-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
                 </div>
                 <p className="text-[11px] text-stone-500 mt-1">
-                  Must start with <code className="font-bold text-stone-700">https://</code>. Users will be securely directed here when clicking "Learn More".
+                  Must start with <code className="font-bold text-stone-700">https://</code>. Users are securely redirected here when clicking your ad.
                 </p>
               </div>
 
-              {/* Banner Image */}
+              {/* Creative Upload */}
               <div>
                 <label className="block text-xs font-black uppercase tracking-wider text-stone-700 mb-1.5">
-                  Banner Image URL <span className="text-red-500">*</span>
+                  Creative Image Upload (Cloudinary Powered) <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="url"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/... or Cloudinary image URL"
-                  className="w-full px-4 py-3 rounded-2xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-sm font-mono text-stone-800"
-                />
-                <p className="text-[11px] text-stone-500 mt-1">
-                  Recommended ratio: 16:7 for Home Top, 16:9 for Marketplace In-Feed.
-                </p>
 
-                {imageUrl && (
-                  <div className="mt-3 p-3 bg-stone-100 rounded-2xl border border-stone-200">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-stone-400 mb-2">
-                      Image Preview
-                    </p>
-                    <div className="w-full h-36 rounded-xl overflow-hidden bg-stone-200 relative">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleImageFileChange}
+                />
+
+                {!imagePreviewUrl ? (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-stone-300 hover:border-amber-500 rounded-2xl p-8 text-center cursor-pointer bg-stone-50/60 hover:bg-amber-50/30 transition-all flex flex-col items-center gap-2"
+                  >
+                    <div className="p-3 rounded-full bg-amber-100 text-amber-600">
+                      <Upload className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-stone-800">
+                        Click to upload creative banner
+                      </p>
+                      <p className="text-xs text-stone-500 mt-0.5">
+                        Supports JPG, PNG, WEBP up to 5MB
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-stone-100 rounded-2xl border border-stone-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4 text-amber-600" />
+                        <span className="text-xs font-bold text-stone-800 truncate max-w-xs">
+                          {imageFile?.name}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImageFile(null)
+                          setImagePreviewUrl('')
+                        }}
+                        className="text-xs text-red-600 font-bold hover:underline flex items-center gap-1"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        Remove
+                      </button>
+                    </div>
+
+                    <div className="w-full aspect-[16/8] rounded-xl overflow-hidden bg-stone-900 relative">
                       <img
-                        src={imageUrl}
-                        alt="Preview"
+                        src={imagePreviewUrl}
+                        alt="Creative preview"
                         className="w-full h-full object-cover"
-                        onError={() => toast.error('Failed to load image preview. Please check URL.')}
                       />
                     </div>
                   </div>
@@ -404,7 +491,7 @@ export default function CreateAdvertisementPage() {
                   onClick={handleNextFromStep2}
                   className="inline-flex items-center gap-2 px-8 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-sm transition-all shadow-md"
                 >
-                  <span>Review Campaign</span>
+                  <span>Review & Checkout</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -418,7 +505,7 @@ export default function CreateAdvertisementPage() {
               <div className="p-6 rounded-3xl bg-stone-50 border border-stone-200 space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-stone-200">
                   <span className="text-xs font-black uppercase tracking-wider text-stone-500">
-                    Selected Placement & Plan
+                    Campaign Summary
                   </span>
                   <span className="inline-flex items-center gap-1.5 text-xs font-black text-amber-700 bg-amber-100 px-3 py-1 rounded-full">
                     {placement}
@@ -428,7 +515,7 @@ export default function CreateAdvertisementPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
                   <div>
                     <span className="text-stone-400 font-bold uppercase tracking-wider block">
-                      Plan Name
+                      Plan
                     </span>
                     <span className="font-extrabold text-stone-900 text-sm">
                       {selectedPlan?.name}
@@ -444,103 +531,106 @@ export default function CreateAdvertisementPage() {
                   </div>
                   <div>
                     <span className="text-stone-400 font-bold uppercase tracking-wider block">
-                      Total Price
+                      Placement
+                    </span>
+                    <span className="font-extrabold text-stone-900 text-sm">
+                      {placement}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-stone-400 font-bold uppercase tracking-wider block">
+                      Amount
                     </span>
                     <span className="font-black text-amber-600 text-base">
                       {Number(selectedPlan?.price).toLocaleString()} ETB
                     </span>
                   </div>
-                  <div>
-                    <span className="text-stone-400 font-bold uppercase tracking-wider block">
-                      Moderation
-                    </span>
-                    <span className="font-extrabold text-emerald-700 text-sm flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Standard Review
-                    </span>
-                  </div>
                 </div>
 
-                {/* Creative Preview */}
-                <div className="pt-4 border-t border-stone-200">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-2">
-                    Creative Mock Preview
+                {/* Creative preview snapshot */}
+                <div className="pt-3 border-t border-stone-200 space-y-2">
+                  <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">
+                    Creative Preview:
                   </span>
-                  <div className="p-4 rounded-2xl bg-stone-900 text-white flex items-center gap-4">
-                    {imageUrl && (
+                  <div className="p-4 bg-stone-900 text-white rounded-2xl flex flex-col sm:flex-row gap-4 items-center">
+                    {imagePreviewUrl && (
                       <img
-                        src={imageUrl}
-                        alt="Ad Thumbnail"
-                        className="w-20 h-16 object-cover rounded-xl shrink-0"
+                        src={imagePreviewUrl}
+                        alt={title}
+                        className="w-full sm:w-36 h-20 object-cover rounded-xl shrink-0"
                       />
                     )}
-                    <div className="space-y-0.5 min-w-0">
-                      <span className="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider">
-                        Sponsored
-                      </span>
-                      <h4 className="font-extrabold text-sm truncate">{title}</h4>
+                    <div className="space-y-1 text-center sm:text-left min-w-0 flex-1">
+                      <h4 className="font-extrabold text-sm text-amber-300 truncate">
+                        {title}
+                      </h4>
                       {description && (
-                        <p className="text-xs text-stone-400 truncate">{description}</p>
+                        <p className="text-xs text-stone-300 line-clamp-2">
+                          {description}
+                        </p>
                       )}
+                      <p className="text-[10px] text-stone-400 font-mono truncate">
+                        {targetUrl}
+                      </p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Payment Provider Selection */}
-              <div>
-                <label className="block text-xs font-black uppercase tracking-wider text-stone-700 mb-3">
+              <div className="space-y-3">
+                <label className="block text-xs font-black uppercase tracking-wider text-stone-500">
                   Select Payment Method
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {[
                     {
                       id: 'MOCK' as const,
-                      name: 'Test / Mock Checkout',
-                      desc: 'Instant 1-click test payment simulation',
+                      name: 'Instant Sandbox Test',
+                      sub: 'Instant verification for demo & QA',
                     },
                     {
                       id: 'CHAPA' as const,
-                      name: 'Chapa Gateway',
-                      desc: 'Telebirr, CBE Birr, Cards & Bank Transfer',
+                      name: 'Chapa (Cards / CBEBirr)',
+                      sub: 'Visa, Mastercard & CBEBirr',
                     },
                     {
                       id: 'TELEBIRR' as const,
-                      name: 'Telebirr Direct',
-                      desc: 'Direct mobile wallet payment',
+                      name: 'Telebirr',
+                      sub: 'Official Ethio Telecom Gateway',
                     },
-                  ].map((prov) => (
+                  ].map((p) => (
                     <button
-                      key={prov.id}
+                      key={p.id}
                       type="button"
-                      onClick={() => setPaymentProvider(prov.id)}
-                      className={`p-4 rounded-2xl text-left border-2 transition-all ${
-                        paymentProvider === prov.id
-                          ? 'border-amber-500 bg-amber-50/50 shadow-xs'
+                      onClick={() => setPaymentProvider(p.id)}
+                      className={`p-4 rounded-2xl text-left border-2 transition-all flex flex-col justify-between ${
+                        paymentProvider === p.id
+                          ? 'border-amber-500 bg-amber-50/50 shadow-xs ring-2 ring-amber-500/20'
                           : 'border-stone-200 bg-white hover:border-stone-300'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <CreditCard className="w-4 h-4 text-stone-600" />
-                        {paymentProvider === prov.id && (
+                      <div className="flex items-center justify-between mb-2">
+                        <CreditCard
+                          className={`w-5 h-5 ${
+                            paymentProvider === p.id
+                              ? 'text-amber-600'
+                              : 'text-stone-400'
+                          }`}
+                        />
+                        {paymentProvider === p.id && (
                           <CheckCircle2 className="w-4 h-4 text-amber-600" />
                         )}
                       </div>
-                      <p className="font-extrabold text-sm text-stone-900">{prov.name}</p>
-                      <p className="text-[11px] text-stone-500 mt-0.5">{prov.desc}</p>
+                      <div>
+                        <p className="font-extrabold text-sm text-stone-900">
+                          {p.name}
+                        </p>
+                        <p className="text-xs text-stone-500 mt-0.5">{p.sub}</p>
+                      </div>
                     </button>
                   ))}
                 </div>
-              </div>
-
-              <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-1">
-                <div className="flex items-center gap-2 font-bold">
-                  <Lock className="w-4 h-4 text-amber-700" />
-                  <span>Quality Guarantee & Moderation Policy</span>
-                </div>
-                <p className="text-amber-800 text-[11px] leading-relaxed">
-                  Upon verified payment, your advertisement is submitted to our community moderation team. Once approved, it activates automatically for your selected duration. If an ad does not meet guidelines, your payment is refunded.
-                </p>
               </div>
 
               <div className="pt-4 flex items-center justify-between">
@@ -551,21 +641,18 @@ export default function CreateAdvertisementPage() {
                 >
                   Back
                 </button>
-
                 <button
                   type="button"
                   disabled={isSubmitting}
                   onClick={handleCreateAndPay}
-                  className="inline-flex items-center gap-2 px-9 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-stone-950 font-black text-sm transition-all shadow-lg hover:scale-105 active:scale-95"
+                  className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-stone-950 font-black text-sm transition-all shadow-md"
                 >
-                  {isSubmitting ? (
-                    <span>Processing Booking...</span>
-                  ) : (
-                    <>
-                      <span>Pay {Number(selectedPlan?.price).toLocaleString()} ETB & Submit</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
+                  <Lock className="w-4 h-4" />
+                  <span>
+                    {isSubmitting
+                      ? 'Processing Creative & Order...'
+                      : `Pay ${Number(selectedPlan?.price).toLocaleString()} ETB & Submit`}
+                  </span>
                 </button>
               </div>
             </div>

@@ -1,5 +1,5 @@
-export type VerificationType = 'EMAIL' | 'PHONE' | 'NATIONAL_ID' | 'FACE'
-export type VerificationStatus = 'UNVERIFIED' | 'PENDING' | 'VERIFIED' | 'REJECTED'
+export type VerificationType = 'EMAIL' | 'PHONE' | 'NATIONAL_ID' | 'FACE' | 'BUSINESS'
+export type VerificationStatus = 'UNVERIFIED' | 'PENDING' | 'PAID_PENDING' | 'VERIFIED' | 'REJECTED' | 'EXPIRED'
 
 export interface UserVerificationItem {
   id: string

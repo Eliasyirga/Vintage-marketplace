@@ -8,6 +8,7 @@ import {
 } from 'react'
 import type { User, AuthResponse, LoginFormData } from '../types/auth'
 import * as authService from '../services/auth.service'
+import { connectSocket, disconnectSocket } from '../services/socket.service'
 import toast from 'react-hot-toast'
 
 interface AuthContextValue {
@@ -38,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const response = await authService.getMe()
         if (response.success && response.data) {
           setUser(response.data.user)
+          connectSocket()
         } else {
           localStorage.removeItem('accessToken')
         }
@@ -53,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setAuthFromResponse = useCallback((auth: AuthResponse) => {
     localStorage.setItem('accessToken', auth.accessToken)
     setUser(auth.user)
+    connectSocket()
   }, [])
 
   const login = useCallback(async (data: LoginFormData) => {
@@ -70,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Always clear locally even if the server call fails
     } finally {
+      disconnectSocket()
       localStorage.removeItem('accessToken')
       setUser(null)
       toast.success('Logged out successfully.')

@@ -1,18 +1,51 @@
 import type { Request, Response, NextFunction } from 'express'
 import * as adService from '../services/advertisement.service'
+import * as uploadService from '../services/upload.service'
 import type { AdPlacement } from '../types/monetization.types'
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function getClientIp(req: Request): string | undefined {
+  const forwarded = req.headers['x-forwarded-for']
+  if (forwarded) {
+    const first = Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0]
+    return first.trim()
+  }
+  return req.socket?.remoteAddress
+}
+
+// ── Public / marketplace routes ───────────────────────────────────────────────
 
 /**
  * GET /api/advertisements/active
- * Returns all 3 primary ad slots in ONE single, high-performance API response.
+ * Optional query parameter: ?placement=MARKETPLACE_BANNER | MARKETPLACE_FEATURED | MARKETPLACE_SIDEBAR
+ * If placement provided: returns the active ad for that specific slot.
+ * If omitted: returns all 3 slot payloads in one response for the marketplace layout.
  */
-export async function getActiveSlots(_req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function getActiveSlots(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
+    const placementParam = req.query.placement as string | undefined
+    if (placementParam) {
+      const placement = placementParam.trim() as AdPlacement
+      if (!adService.VALID_PLACEMENTS.includes(placement)) {
+        res.status(400).json({
+          success: false,
+          message: `Invalid placement "${placementParam}". Valid placements: ${adService.VALID_PLACEMENTS.join(', ')}`,
+        })
+        return
+      }
+      // Returns an array — frontend renders carousel when multiple ads exist
+      const ads = await adService.getActiveAdForPlacement(placement)
+      res.json({ success: true, data: ads })
+      return
+    }
+
     const slots = await adService.getActiveAdSlots()
-    res.json({
-      success: true,
-      data: slots,
-    })
+    res.json({ success: true, data: slots })
   } catch (err) {
     next(err)
   }
@@ -20,15 +53,16 @@ export async function getActiveSlots(_req: Request, res: Response, next: NextFun
 
 /**
  * GET /api/advertisements/available-placements
- * Returns which slots are available vs occupied.
+ * Returns which slots are available vs occupied for plan selection UI.
  */
-export async function getAvailablePlacements(_req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function getAvailablePlacements(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
     const data = await adService.getAvailablePlacements()
-    res.json({
-      success: true,
-      data,
-    })
+    res.json({ success: true, data })
   } catch (err) {
     next(err)
   }
@@ -38,47 +72,74 @@ export async function getAvailablePlacements(_req: Request, res: Response, next:
  * GET /api/advertisements/plans
  * Returns all active advertisement pricing plans.
  */
-export async function getAdPlans(_req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function getAdPlans(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
     const plans = await adService.getAdvertisementPlans()
-    res.json({
-      success: true,
-      data: plans.map((p) => p.toSafeObject()),
-    })
+    res.json({ success: true, data: plans.map((p) => p.toSafeObject()) })
   } catch (err) {
     next(err)
   }
 }
 
+// ── Advertiser authenticated routes ──────────────────────────────────────────
+
 /**
  * POST /api/advertisements
- * Submit a new advertisement for an advertiser in PENDING_PAYMENT status.
+ * Accepts multipart/form-data: image (file) + planId, title, description, targetUrl, placement.
+ * Uploads creative to Cloudinary, creates ad in PENDING_PAYMENT.
  */
-export async function createAd(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function createAd(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
     const userId = req.user!.id
-    const { planId, title, description, image, targetUrl, placement } = req.body
+    const { planId, title, description, targetUrl, placement } = req.body
 
-    if (!planId || !title || !image || !targetUrl || !placement) {
+    if (!planId || !title || !targetUrl || !placement) {
       res.status(400).json({
         success: false,
-        message: 'Please provide planId, title, image, targetUrl, and placement.',
+        message: 'planId, title, targetUrl, and placement are required.',
       })
       return
     }
 
+    // Upload creative image (Cloudinary or local disk)
+    const file = req.file as Express.Multer.File | undefined
+    if (!file) {
+      res.status(400).json({
+        success: false,
+        message: 'An advertisement creative image is required.',
+      })
+      return
+    }
+
+    const adId = crypto.randomUUID()
+    const uploaded = await uploadService.saveAdImage(file, adId)
+
     const ad = await adService.createAdvertisement(userId, {
+      id: adId,
       planId,
       title,
-      description,
-      image,
+      description: description ?? null,
+      imageUrl: uploaded.url,
+      imagePublicId: uploaded.publicId ?? null,
+      imageWidth: uploaded.width ?? null,
+      imageHeight: uploaded.height ?? null,
+      imageFormat: uploaded.format ?? null,
+      imageBytes: uploaded.bytes ?? null,
       targetUrl,
       placement: placement as AdPlacement,
     })
 
     res.status(201).json({
       success: true,
-      message: 'Advertisement created. Please proceed to payment to submit for review.',
+      message: 'Advertisement created. Proceed to payment to submit for review.',
       data: ad.toSafeObject(),
     })
   } catch (err) {
@@ -87,17 +148,16 @@ export async function createAd(req: Request, res: Response, next: NextFunction):
 }
 
 /**
- * GET /api/advertisements/my-ads or /api/advertisements/my
- * Get all advertisements owned by the authenticated advertiser.
+ * GET /api/advertisements/my  (or /api/advertisements/my-ads)
  */
-export async function getMyAds(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function getMyAds(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
-    const userId = req.user!.id
-    const ads = await adService.getAdvertisementsByUser(userId)
-    res.json({
-      success: true,
-      data: ads.map((a) => a.toSafeObject()),
-    })
+    const ads = await adService.getAdvertisementsByUser(req.user!.id)
+    res.json({ success: true, data: ads.map((a) => a.toSafeObject()) })
   } catch (err) {
     next(err)
   }
@@ -105,61 +165,59 @@ export async function getMyAds(req: Request, res: Response, next: NextFunction):
 
 /**
  * GET /api/advertisements/:id
- * Get details for a single advertisement.
  */
-export async function getAdById(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function getAdById(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
-    const id = String(req.params.id)
-    const userId = req.user?.id
-    const isAdmin = req.user?.role === 'ADMIN'
-
-    const ad = await adService.getAdvertisementById(id, userId, isAdmin)
-    res.json({
-      success: true,
-      data: ad.toSafeObject(),
-    })
+    const ad = await adService.getAdvertisementById(
+      String(req.params.id),
+      req.user?.id,
+      req.user?.role === 'ADMIN',
+    )
+    res.json({ success: true, data: ad.toSafeObject() })
   } catch (err) {
     next(err)
   }
 }
 
 /**
- * POST /api/advertisements/:id/pause
- * Pause an active ad.
+ * PATCH /api/advertisements/:id/pause
  */
-export async function pauseAd(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function pauseAd(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
-    const id = String(req.params.id)
-    const userId = req.user!.id
-    const isAdmin = req.user?.role === 'ADMIN'
-
-    const ad = await adService.pauseAdvertisement(id, userId, isAdmin)
-    res.json({
-      success: true,
-      message: 'Advertisement paused.',
-      data: ad.toSafeObject(),
-    })
+    const ad = await adService.pauseAdvertisement(
+      String(req.params.id),
+      req.user!.id,
+      req.user?.role === 'ADMIN',
+    )
+    res.json({ success: true, message: 'Advertisement paused.', data: ad.toSafeObject() })
   } catch (err) {
     next(err)
   }
 }
 
 /**
- * POST /api/advertisements/:id/resume
- * Resume a paused ad.
+ * PATCH /api/advertisements/:id/resume
  */
-export async function resumeAd(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function resumeAd(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
-    const id = String(req.params.id)
-    const userId = req.user!.id
-    const isAdmin = req.user?.role === 'ADMIN'
-
-    const ad = await adService.resumeAdvertisement(id, userId, isAdmin)
-    res.json({
-      success: true,
-      message: 'Advertisement resumed.',
-      data: ad.toSafeObject(),
-    })
+    const ad = await adService.resumeAdvertisement(
+      String(req.params.id),
+      req.user!.id,
+      req.user?.role === 'ADMIN',
+    )
+    res.json({ success: true, message: 'Advertisement resumed.', data: ad.toSafeObject() })
   } catch (err) {
     next(err)
   }
@@ -167,33 +225,41 @@ export async function resumeAd(req: Request, res: Response, next: NextFunction):
 
 /**
  * POST /api/advertisements/:id/cancel
- * Cancel an advertisement.
  */
-export async function cancelAd(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function cancelAd(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
-    const id = String(req.params.id)
-    const userId = req.user!.id
-    const isAdmin = req.user?.role === 'ADMIN'
-
-    const ad = await adService.cancelAdvertisement(id, userId, isAdmin)
-    res.json({
-      success: true,
-      message: 'Advertisement cancelled.',
-      data: ad.toSafeObject(),
-    })
+    const ad = await adService.cancelAdvertisement(
+      String(req.params.id),
+      req.user!.id,
+      req.user?.role === 'ADMIN',
+    )
+    res.json({ success: true, message: 'Advertisement cancelled.', data: ad.toSafeObject() })
   } catch (err) {
     next(err)
   }
 }
 
+// ── Analytics tracking ────────────────────────────────────────────────────────
+
 /**
  * POST /api/advertisements/:id/impression
- * Track an impression event safely.
+ * Deduplicated impression tracking — fire-and-forget, always returns 200.
  */
-export async function recordImpression(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function recordImpression(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
-    const id = String(req.params.id)
-    await adService.recordAdImpression(id)
+    await adService.recordAdImpression(String(req.params.id), {
+      ip: getClientIp(req),
+      sessionId: req.body?.sessionId ?? undefined,
+      userId: req.user?.id,
+    })
     res.json({ success: true })
   } catch (err) {
     next(err)
@@ -202,12 +268,19 @@ export async function recordImpression(req: Request, res: Response, next: NextFu
 
 /**
  * POST /api/advertisements/:id/click
- * Track a click event and return the targetUrl.
+ * Records click and returns the safe destination targetUrl.
  */
-export async function recordClick(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function recordClick(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
-    const id = String(req.params.id)
-    const targetUrl = await adService.recordAdClick(id)
+    const targetUrl = await adService.recordAdClick(String(req.params.id), {
+      ip: getClientIp(req),
+      sessionId: req.body?.sessionId ?? undefined,
+      userId: req.user?.id,
+    })
     res.json({ success: true, targetUrl })
   } catch (err) {
     next(err)
@@ -216,51 +289,59 @@ export async function recordClick(req: Request, res: Response, next: NextFunctio
 
 /**
  * GET /api/advertisements/:id/click
- * Direct browser redirect with tracking.
+ * Browser redirect with tracking (used when image/link points directly to this URL).
  */
-export async function handleClickRedirect(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function handleClickRedirect(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
-    const id = String(req.params.id)
-    const targetUrl = await adService.recordAdClick(id)
-    if (targetUrl) {
-      res.redirect(targetUrl)
-    } else {
-      res.redirect('/')
-    }
+    const targetUrl = await adService.recordAdClick(String(req.params.id), {
+      ip: getClientIp(req),
+      userId: req.user?.id,
+    })
+    res.redirect(targetUrl ?? '/')
   } catch (err) {
     next(err)
   }
 }
 
-// ── Admin Controllers ────────────────────────────────────────────────────────
+// ── Admin moderation ──────────────────────────────────────────────────────────
 
 /**
- * GET /api/advertisements/admin or /api/admin/advertisements
+ * GET /api/advertisements/admin  or  GET /api/admin/advertisements
  */
-export async function getAllAdsAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function getAllAdsAdmin(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
     const status = req.query.status ? (String(req.query.status) as any) : undefined
     const ads = await adService.getAllAdvertisementsAdmin(status)
-    res.json({
-      success: true,
-      data: ads.map((a) => a.toSafeObject()),
-    })
+    res.json({ success: true, data: ads.map((a) => a.toSafeObject()) })
   } catch (err) {
     next(err)
   }
 }
 
 /**
- * POST or PATCH /api/advertisements/admin/:id/approve
+ * PATCH /api/advertisements/admin/:id/approve
  */
-export async function approveAdAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function approveAdAdmin(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
-    const adminId = req.user!.id
-    const id = String(req.params.id)
-    const ad = await adService.approveAdvertisement(id, adminId)
+    const ad = await adService.approveAdvertisement(
+      String(req.params.id),
+      req.user!.id,
+    )
     res.json({
       success: true,
-      message: `Advertisement approved and active in ${ad.placement}.`,
+      message: `Advertisement approved and now active in the ${ad.placement} slot.`,
       data: ad.toSafeObject(),
     })
   } catch (err) {
@@ -269,14 +350,24 @@ export async function approveAdAdmin(req: Request, res: Response, next: NextFunc
 }
 
 /**
- * POST or PATCH /api/advertisements/admin/:id/reject
+ * PATCH /api/advertisements/admin/:id/reject
  */
-export async function rejectAdAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function rejectAdAdmin(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
-    const adminId = req.user!.id
-    const id = String(req.params.id)
     const { reason } = req.body
-    const ad = await adService.rejectAdvertisement(id, adminId, reason || 'Did not meet content guidelines.')
+    if (!reason?.trim()) {
+      res.status(400).json({ success: false, message: 'A rejection reason is required.' })
+      return
+    }
+    const ad = await adService.rejectAdvertisement(
+      String(req.params.id),
+      req.user!.id,
+      reason,
+    )
     res.json({
       success: true,
       message: 'Advertisement rejected.',

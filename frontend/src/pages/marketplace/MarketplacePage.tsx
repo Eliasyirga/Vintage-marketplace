@@ -75,19 +75,19 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 
 function ListingSkeleton() {
   return (
-    <div className="rounded-2xl bg-white border border-stone-200 overflow-hidden shadow-sm animate-pulse flex flex-col justify-between">
+    <div className="rounded-2xl bg-white border border-stone-200 overflow-hidden shadow-2xs animate-pulse flex flex-col justify-between h-full">
       <div>
         <div className="aspect-[4/3] w-full bg-stone-200" />
-        <div className="p-4 space-y-3">
-          <div className="h-4 bg-stone-200 rounded w-3/4" />
-          <div className="h-6 bg-stone-200 rounded w-1/2" />
-          <div className="pt-2 border-t border-stone-100 flex justify-between">
-            <div className="h-3 bg-stone-200 rounded w-1/3" />
-            <div className="h-3 bg-stone-200 rounded w-1/6" />
+        <div className="p-2.5 sm:p-3.5 space-y-2">
+          <div className="h-3.5 bg-stone-200 rounded-md w-3/4" />
+          <div className="h-4 sm:h-5 bg-stone-200 rounded-md w-1/2" />
+          <div className="pt-1.5 border-t border-stone-100 flex justify-between gap-1">
+            <div className="h-2.5 sm:h-3 bg-stone-200 rounded w-1/3" />
+            <div className="h-2.5 sm:h-3 bg-stone-200 rounded w-1/6" />
           </div>
-          <div className="pt-2 border-t border-stone-100 flex items-center gap-2">
-            <div className="w-5 h-5 rounded-full bg-stone-200" />
-            <div className="h-3 bg-stone-200 rounded w-1/3" />
+          <div className="pt-1.5 border-t border-stone-100 flex items-center gap-1.5">
+            <div className="w-4 h-4 rounded-full bg-stone-200 flex-shrink-0" />
+            <div className="h-2.5 sm:h-3 bg-stone-200 rounded w-1/3" />
           </div>
         </div>
       </div>
@@ -543,15 +543,15 @@ export default function MarketplacePage() {
           </div>
 
           {/* Search Bar & Mobile Filter Trigger */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="relative flex-1">
-              <Search className="w-5 h-5 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 sm:w-5 sm:h-5 text-stone-400 absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search used products (e.g. Samsung S23, Laptop, Sofa)..."
-                className="w-full bg-stone-50 focus:bg-white text-stone-900 font-medium rounded-2xl pl-12 pr-10 py-3.5 text-sm border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all shadow-inner"
+                placeholder="Search used products (e.g. Samsung S23, Laptop)..."
+                className="w-full bg-stone-50 focus:bg-white text-stone-900 font-medium rounded-2xl pl-10 sm:pl-12 pr-9 sm:pr-10 py-2.5 sm:py-3.5 text-xs sm:text-sm border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all shadow-inner"
               />
               {searchInput && (
                 <button
@@ -559,7 +559,7 @@ export default function MarketplacePage() {
                     setSearchInput('')
                     updateUrlParam('search', null)
                   }}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1"
+                  className="absolute right-2.5 sm:right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -570,12 +570,12 @@ export default function MarketplacePage() {
             <button
               type="button"
               onClick={() => setMobileDrawerOpen(true)}
-              className="lg:hidden flex items-center gap-2 px-4 py-3.5 rounded-2xl bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-800 text-sm font-bold transition-colors relative"
+              className="lg:hidden flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-2xl bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-800 text-xs sm:text-sm font-bold transition-colors relative flex-shrink-0"
             >
               <SlidersHorizontal className="w-4 h-4 text-amber-600" />
               <span>Filters</span>
               {activeFilters.length > 0 && (
-                <span className="w-5 h-5 rounded-full bg-amber-600 text-white text-[10px] font-extrabold flex items-center justify-center">
+                <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-amber-600 text-white text-[9px] sm:text-[10px] font-extrabold flex items-center justify-center">
                   {activeFilters.length}
                 </span>
               )}
@@ -605,6 +605,11 @@ export default function MarketplacePage() {
               )}
             </div>
             <FilterControls />
+
+            {/* Desktop Sidebar Sponsored Placement (MARKETPLACE_SIDEBAR) */}
+            <div className="pt-6 mt-6 border-t border-stone-100">
+              <AdvertisementSlot placement="MARKETPLACE_SIDEBAR" />
+            </div>
           </div>
 
           {/* Results Area (3 cols) */}
@@ -673,14 +678,14 @@ export default function MarketplacePage() {
 
             {/* Listings Grid */}
             {isLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-2.5 sm:gap-4 lg:gap-5">
                 {[...Array(6)].map((_, i) => (
                   <ListingSkeleton key={i} />
                 ))}
               </div>
             ) : listings.length === 0 ? (
               /* Empty Search Results */
-              <div className="bg-white border border-stone-200 rounded-3xl p-12 text-center shadow-sm space-y-4 max-w-md mx-auto my-8">
+              <div className="bg-white border border-stone-200 rounded-3xl p-8 sm:p-12 text-center shadow-sm space-y-4 max-w-md mx-auto my-8">
                 <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto text-amber-600 shadow-sm">
                   <PackageX className="w-8 h-8" />
                 </div>
@@ -699,14 +704,14 @@ export default function MarketplacePage() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-2.5 sm:gap-4 lg:gap-5">
                 {listings.slice(0, Math.min(listings.length, 6)).map((listing) => (
                   <ListingCard key={listing.id} listing={listing} />
                 ))}
 
-                {/* In-Feed Sponsored Placement (MARKETPLACE_MIDDLE) */}
-                <div className="col-span-1 sm:col-span-2 md:col-span-3">
-                  <AdvertisementSlot placement="MARKETPLACE_MIDDLE" />
+                {/* In-Feed Sponsored Placement (MARKETPLACE_FEATURED) */}
+                <div className="col-span-2 sm:col-span-2 md:col-span-3 xl:col-span-3 2xl:col-span-4">
+                  <AdvertisementSlot placement="MARKETPLACE_FEATURED" />
                 </div>
 
                 {listings.slice(6).map((listing) => (
@@ -744,9 +749,9 @@ export default function MarketplacePage() {
               </div>
             )}
 
-            {/* Catalog Bottom Spotlight (MARKETPLACE_BOTTOM) */}
+            {/* Catalog Bottom Spotlight (MARKETPLACE_BANNER) */}
             <div className="pt-6">
-              <AdvertisementSlot placement="MARKETPLACE_BOTTOM" />
+              <AdvertisementSlot placement="MARKETPLACE_BANNER" />
             </div>
 
             {/* Recommendations */}

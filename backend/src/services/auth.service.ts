@@ -1,17 +1,21 @@
 import { Op } from 'sequelize'
 import { sequelize } from '../config/database'
-import { User, PendingRegistration } from '../models'
+import { User, PendingRegistration, PasswordReset } from '../models'
 import { dispatchOTP } from './otp.service'
 import { hashPassword, comparePassword } from '../utils/password'
 import { generateOTP, hashOTP, otpExpiresAt, isOTPExpired, verifyOTP } from '../utils/otp'
 import { validateAndNormalizePhone } from '../utils/phone'
-import { signAccessToken } from '../utils/jwt'
+import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt'
 import type {
   RegisterInput,
   LoginInput,
   VerifyOtpInput,
   ResendOtpInput,
   ChangeMethodInput,
+  ForgotPasswordInput,
+  ForgotPasswordResult,
+  ResetPasswordInput,
+  ChangePasswordInput,
   SafeUser,
   AuthResponse,
 } from '../types/auth.types'
@@ -175,8 +179,9 @@ export async function verifyRegistration(input: VerifyOtpInput): Promise<AuthRes
     await transaction.commit()
 
     const accessToken = signAccessToken({ sub: user.id, role: user.role })
+    const refreshToken = signRefreshToken({ sub: user.id, role: user.role })
 
-    return { user: user.toSafeObject() as SafeUser, accessToken }
+    return { user: user.toSafeObject() as SafeUser, accessToken, refreshToken }
   } catch (err) {
     await transaction.rollback()
     throw err
@@ -310,9 +315,192 @@ export async function login(input: LoginInput): Promise<AuthResponse> {
     throw Object.assign(new Error('Your account has been deactivated.'), { statusCode: 403 })
   }
 
-  const accessToken = signAccessToken({ sub: user.id, role: user.role })
+  // Record last successful login timestamp
+  user.last_login_at = new Date()
+  await user.save()
 
-  return { user: user.toSafeObject() as SafeUser, accessToken }
+  const accessToken = signAccessToken({ sub: user.id, role: user.role })
+  const refreshToken = signRefreshToken({ sub: user.id, role: user.role })
+
+  return { user: user.toSafeObject() as SafeUser, accessToken, refreshToken }
+}
+
+// ─── Token Refresh ────────────────────────────────────────────────────────────
+
+export async function refreshSession(token: string): Promise<AuthResponse> {
+  if (!token) {
+    throw Object.assign(new Error('Refresh token is required.'), { statusCode: 401 })
+  }
+
+  let payload
+  try {
+    payload = verifyRefreshToken(token)
+  } catch {
+    throw Object.assign(new Error('Invalid or expired refresh token. Please log in again.'), {
+      statusCode: 401,
+    })
+  }
+
+  const user = await User.findByPk(payload.sub)
+  if (!user) {
+    throw Object.assign(new Error('User account not found.'), { statusCode: 401 })
+  }
+
+  if (user.status === 'SUSPENDED') {
+    throw Object.assign(new Error('Your account has been suspended. Please contact support.'), {
+      statusCode: 403,
+    })
+  }
+  if (user.status === 'DEACTIVATED') {
+    throw Object.assign(new Error('Your account has been deactivated.'), { statusCode: 403 })
+  }
+
+  const newAccessToken = signAccessToken({ sub: user.id, role: user.role })
+  const newRefreshToken = signRefreshToken({ sub: user.id, role: user.role })
+
+  return {
+    user: user.toSafeObject() as SafeUser,
+    accessToken: newAccessToken,
+    refreshToken: newRefreshToken,
+  }
+}
+
+// ─── Forgot Password ──────────────────────────────────────────────────────────
+
+export async function forgotPassword(input: ForgotPasswordInput): Promise<ForgotPasswordResult> {
+  const raw = input.identifier.trim()
+  const isEmail = raw.includes('@')
+  const identifier = isEmail ? normaliseEmail(raw) : normalisePhone(raw)
+
+  const whereClause = isEmail ? { email: identifier } : { phone: identifier }
+  const user = await User.findOne({ where: whereClause })
+
+  if (!user) {
+    // For security, don't leak user existence directly in message, but provide safe response
+    throw Object.assign(new Error('No account found with this email or phone number.'), {
+      statusCode: 404,
+    })
+  }
+
+  if (user.status === 'SUSPENDED') {
+    throw Object.assign(new Error('Your account has been suspended. Please contact support.'), {
+      statusCode: 403,
+    })
+  }
+  if (user.status === 'DEACTIVATED') {
+    throw Object.assign(new Error('Your account has been deactivated.'), { statusCode: 403 })
+  }
+
+  const method: 'EMAIL' | 'PHONE' = isEmail ? 'EMAIL' : 'PHONE'
+  const destination = isEmail ? user.email! : user.phone!
+
+  const otp = generateOTP()
+  const otpHash = hashOTP(otp)
+  const expiresAt = otpExpiresAt()
+
+  // Invalidate any previous unused reset requests for this user
+  await PasswordReset.update(
+    { is_used: true },
+    { where: { user_id: user.id, is_used: false } },
+  )
+
+  const resetRecord = await PasswordReset.create({
+    user_id: user.id,
+    verification_method: method,
+    destination,
+    otp_hash: otpHash,
+    otp_expires_at: expiresAt,
+    otp_attempts: 0,
+    is_used: false,
+  })
+
+  await dispatchOTP({
+    method,
+    destination,
+    otp,
+    name: user.full_name,
+  })
+
+  return {
+    resetId: resetRecord.id,
+    maskedDestination: resetRecord.maskedDestination,
+  }
+}
+
+// ─── Reset Password ───────────────────────────────────────────────────────────
+
+export async function resetPassword(input: ResetPasswordInput): Promise<{ message: string }> {
+  const resetRecord = await PasswordReset.findByPk(input.resetId)
+  if (!resetRecord || resetRecord.is_used) {
+    throw Object.assign(new Error('Invalid or expired password reset session.'), {
+      statusCode: 404,
+    })
+  }
+
+  if (isOTPExpired(resetRecord.otp_expires_at)) {
+    resetRecord.is_used = true
+    await resetRecord.save()
+    throw Object.assign(
+      new Error('The password reset code has expired. Please request a new one.'),
+      { statusCode: 400 },
+    )
+  }
+
+  if (resetRecord.otp_attempts >= MAX_OTP_ATTEMPTS) {
+    resetRecord.is_used = true
+    await resetRecord.save()
+    throw Object.assign(
+      new Error('Too many incorrect attempts. Please request a new code.'),
+      { statusCode: 429 },
+    )
+  }
+
+  const isValid = verifyOTP(input.otp, resetRecord.otp_hash)
+  if (!isValid) {
+    resetRecord.otp_attempts += 1
+    await resetRecord.save()
+    const remaining = MAX_OTP_ATTEMPTS - resetRecord.otp_attempts
+    throw Object.assign(
+      new Error(`Incorrect verification code. (${remaining} attempt(s) remaining).`),
+      { statusCode: 400 },
+    )
+  }
+
+  const user = await User.findByPk(resetRecord.user_id)
+  if (!user) {
+    throw Object.assign(new Error('User not found.'), { statusCode: 404 })
+  }
+
+  const passwordHash = await hashPassword(input.newPassword)
+  user.password_hash = passwordHash
+  await user.save()
+
+  resetRecord.is_used = true
+  await resetRecord.save()
+
+  return { message: 'Password has been reset successfully. You can now log in.' }
+}
+
+// ─── Change Password (Authenticated) ──────────────────────────────────────────
+
+export async function changePassword(
+  userId: string,
+  input: ChangePasswordInput,
+): Promise<{ message: string }> {
+  const user = await User.findByPk(userId)
+  if (!user) {
+    throw Object.assign(new Error('User not found.'), { statusCode: 404 })
+  }
+
+  const isCurrentValid = await comparePassword(input.currentPassword, user.password_hash)
+  if (!isCurrentValid) {
+    throw Object.assign(new Error('Incorrect current password.'), { statusCode: 400 })
+  }
+
+  user.password_hash = await hashPassword(input.newPassword)
+  await user.save()
+
+  return { message: 'Password updated successfully.' }
 }
 
 // ─── Get Current User ─────────────────────────────────────────────────────────

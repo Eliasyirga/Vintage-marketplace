@@ -25,6 +25,25 @@ export function verifyAccessToken(token: string): JwtPayload {
 }
 
 /**
+ * Sign a long-lived refresh token (7 days).
+ */
+export function signRefreshToken(payload: JwtPayload): string {
+  return jwt.sign(payload, env.REFRESH_TOKEN_SECRET, {
+    expiresIn: env.REFRESH_TOKEN_EXPIRES_IN as jwt.SignOptions['expiresIn'],
+    issuer: 'vintage-marketplace',
+  })
+}
+
+/**
+ * Verify and decode a refresh token.
+ */
+export function verifyRefreshToken(token: string): JwtPayload {
+  return jwt.verify(token, env.REFRESH_TOKEN_SECRET, {
+    issuer: 'vintage-marketplace',
+  }) as JwtPayload
+}
+
+/**
  * Generate a cryptographically secure opaque refresh token (64 bytes hex).
  * This is a random value; the actual payload is stored server-side.
  */

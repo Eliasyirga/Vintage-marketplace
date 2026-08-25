@@ -16,8 +16,8 @@ export interface SafeUser {
   isEmailVerified: boolean
   isPhoneVerified: boolean
   isFaydaVerified: boolean
-  isFaceVerified: boolean
   avatarUrl: string | null
+  lastLoginAt: Date | null
   createdAt: Date
 }
 
@@ -58,13 +58,37 @@ export interface JwtPayload {
   exp?: number
 }
 
+export interface ForgotPasswordInput {
+  identifier: string
+}
+
+export interface ResetPasswordInput {
+  resetId: string
+  otp: string
+  newPassword: string
+  confirmPassword: string
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
+export interface ForgotPasswordResult {
+  resetId: string
+  maskedDestination: string
+}
+
 export interface AuthTokens {
   accessToken: string
+  refreshToken?: string
 }
 
 export interface AuthResponse {
   user: SafeUser
   accessToken: string
+  refreshToken?: string
 }
 
 // Extend Express Request to carry the authenticated user

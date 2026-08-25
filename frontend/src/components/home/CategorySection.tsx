@@ -48,7 +48,7 @@ export default function CategorySection() {
         </div>
 
         {/* Categories Grid */}
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4">
           {categories.map((cat) => {
             const IconComponent = iconMap[cat.icon] || Package
             const colors = categoryColors[cat.slug] || categoryColors['other']
@@ -56,14 +56,14 @@ export default function CategorySection() {
               <Link
                 key={cat.id}
                 to={`/browse?category=${cat.slug}`}
-                className={`group flex flex-col items-center text-center p-5 bg-white border border-stone-200 hover:border-amber-400 rounded-2xl transition-all duration-200 shadow-xs hover:shadow-lg hover:-translate-y-0.5 ring-0 ring-transparent ${colors.ring} hover:ring-2`}
+                className={`group flex flex-col items-center text-center p-2.5 sm:p-5 bg-white border border-stone-200 hover:border-amber-400 rounded-xl sm:rounded-2xl transition-all duration-200 shadow-2xs hover:shadow-lg hover:-translate-y-0.5 ring-0 ring-transparent ${colors.ring} hover:ring-2`}
               >
-                <div className={`w-14 h-14 rounded-2xl ${colors.bg} ${colors.icon} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-200`}>
-                  <IconComponent className="w-7 h-7" />
+                <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl ${colors.bg} ${colors.icon} flex items-center justify-center mb-1.5 sm:mb-3 group-hover:scale-110 transition-transform duration-200`}>
+                  <IconComponent className="w-5 h-5 sm:w-7 sm:h-7" />
                 </div>
-                <h3 className="text-xs sm:text-sm font-bold text-stone-900 leading-tight mb-1">{cat.name}</h3>
-                <p className="text-[11px] font-semibold text-stone-400">
-                  {cat.count.toLocaleString()} listings
+                <h3 className="text-[11px] sm:text-sm font-bold text-stone-900 leading-tight mb-0.5 sm:mb-1 truncate max-w-full">{cat.name}</h3>
+                <p className="text-[9px] sm:text-[11px] font-semibold text-stone-400">
+                  {cat.count.toLocaleString()}
                 </p>
               </Link>
             )

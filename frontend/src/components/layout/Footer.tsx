@@ -4,10 +4,10 @@ import { Sparkles, MapPin, Mail, Phone } from 'lucide-react'
 export function Footer() {
   return (
     <footer className="bg-stone-900 border-t border-stone-800 text-stone-300 text-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 lg:py-16">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-6 sm:gap-8 lg:gap-12">
           {/* Brand Col */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="col-span-2 lg:col-span-2 space-y-4">
             <Link to="/" className="inline-flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-white shadow-md shadow-amber-500/20">
                 <Sparkles className="w-4 h-4" />
@@ -47,9 +47,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="#categories" className="hover:text-amber-400 transition-colors">
+                <Link to="/categories" className="hover:text-amber-400 transition-colors">
                   Explore Categories
-                </a>
+                </Link>
               </li>
               <li>
                 <Link to="/sell" className="hover:text-amber-400 transition-colors">
@@ -57,9 +57,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="#how-it-works" className="hover:text-amber-400 transition-colors">
+                <Link to="/how-it-works" className="hover:text-amber-400 transition-colors">
                   How It Works
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

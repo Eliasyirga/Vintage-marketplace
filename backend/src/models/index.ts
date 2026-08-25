@@ -5,6 +5,7 @@
  */
 import User from './User'
 import PendingRegistration from './PendingRegistration'
+import PasswordReset from './PasswordReset'
 import Category from './Category'
 import Listing from './Listing'
 import ListingImage from './ListingImage'
@@ -12,7 +13,9 @@ import SellerProfile from './SellerProfile'
 import Favorite from './Favorite'
 import RecentlyViewed from './RecentlyViewed'
 import Conversation from './Conversation'
+import ConversationParticipant from './ConversationParticipant'
 import Message from './Message'
+import UserBlock from './UserBlock'
 import Review from './Review'
 import Report from './Report'
 import UserVerification from './UserVerification'
@@ -27,6 +30,7 @@ import Entitlement from './Entitlement'
 import BusinessProfile from './BusinessProfile'
 import Subscription from './Subscription'
 import Advertisement from './Advertisement'
+import AdvertisementEvent from './AdvertisementEvent'
 import Transaction from './Transaction'
 import DeliveryOrder from './DeliveryOrder'
 
@@ -99,6 +103,34 @@ Message.belongsTo(Conversation, {
 
 User.hasMany(Message, { foreignKey: 'sender_id', as: 'sentMessages' })
 Message.belongsTo(User, { foreignKey: 'sender_id', as: 'sender' })
+
+// ── Conversation Participant Associations ───────────────────────────────────
+
+Conversation.hasMany(ConversationParticipant, {
+  foreignKey: 'conversation_id',
+  as: 'participants',
+})
+ConversationParticipant.belongsTo(Conversation, {
+  foreignKey: 'conversation_id',
+  as: 'conversation',
+})
+
+User.hasMany(ConversationParticipant, {
+  foreignKey: 'user_id',
+  as: 'conversationParticipants',
+})
+ConversationParticipant.belongsTo(User, {
+  foreignKey: 'user_id',
+  as: 'user',
+})
+
+// ── User Blocking Associations ──────────────────────────────────────────────
+
+User.hasMany(UserBlock, { foreignKey: 'blocker_id', as: 'blockedUsers' })
+UserBlock.belongsTo(User, { foreignKey: 'blocker_id', as: 'blocker' })
+
+User.hasMany(UserBlock, { foreignKey: 'blocked_user_id', as: 'blockedByUsers' })
+UserBlock.belongsTo(User, { foreignKey: 'blocked_user_id', as: 'blockedUser' })
 
 // ── Trust & Safety Associations ───────────────────────────────────────────────
 
@@ -181,6 +213,20 @@ Advertisement.belongsTo(Plan, { foreignKey: 'plan_id', as: 'plan' })
 Payment.hasOne(Advertisement, { foreignKey: 'payment_id', as: 'advertisement' })
 Advertisement.belongsTo(Payment, { foreignKey: 'payment_id', as: 'payment' })
 
+// ── Advertisement Event Associations ─────────────────────────────────────────
+
+Advertisement.hasMany(AdvertisementEvent, {
+  foreignKey: 'advertisement_id',
+  as: 'events',
+})
+AdvertisementEvent.belongsTo(Advertisement, {
+  foreignKey: 'advertisement_id',
+  as: 'advertisement',
+})
+
+User.hasMany(AdvertisementEvent, { foreignKey: 'user_id', as: 'adEvents' })
+AdvertisementEvent.belongsTo(User, { foreignKey: 'user_id', as: 'user' })
+
 Payment.hasOne(UserVerification, { foreignKey: 'payment_id', as: 'verification' })
 UserVerification.belongsTo(Payment, { foreignKey: 'payment_id', as: 'payment' })
 
@@ -220,10 +266,17 @@ OrderEvent.belongsTo(Order, { foreignKey: 'order_id', as: 'order' })
 
 OrderEvent.belongsTo(User, { foreignKey: 'actor_id', as: 'actor' })
 
+// Payment ↔ Order: direct link for order-payment queries
+Order.hasMany(Payment, { foreignKey: 'order_id', as: 'orderPayments' })
+Payment.belongsTo(Order, { foreignKey: 'order_id', as: 'order' })
+
 // ── Notifications ─────────────────────────────────────────────────────────────
 
 User.hasMany(Notification, { foreignKey: 'user_id', as: 'notifications' })
 Notification.belongsTo(User, { foreignKey: 'user_id', as: 'user' })
+
+User.hasMany(PasswordReset, { foreignKey: 'user_id', as: 'passwordResets' })
+PasswordReset.belongsTo(User, { foreignKey: 'user_id', as: 'user' })
 
 export {
   User,
@@ -235,7 +288,9 @@ export {
   Favorite,
   RecentlyViewed,
   Conversation,
+  ConversationParticipant,
   Message,
+  UserBlock,
   Review,
   Report,
   UserVerification,
@@ -248,10 +303,12 @@ export {
   BusinessProfile,
   Subscription,
   Advertisement,
+  AdvertisementEvent,
   Transaction,
   DeliveryOrder,
   Order,
   OrderEvent,
   MeetingOrder,
   Notification,
+  PasswordReset,
 }

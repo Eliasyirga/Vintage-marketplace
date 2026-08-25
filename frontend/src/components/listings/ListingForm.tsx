@@ -104,6 +104,28 @@ export function ListingForm({
     if (formState.neighborhood.trim()) fd.append('neighborhood', formState.neighborhood.trim())
     fd.append('status', targetStatus)
 
+    // In edit mode, track removed existing images and new sort orders
+    if (mode === 'edit' && initialImages.length > 0) {
+      const remainingExistingIds = new Set(
+        images.filter((img) => img.existingImage).map((img) => img.existingImage!.id),
+      )
+      const removedIds = initialImages
+        .filter((init) => init.existingImage && !remainingExistingIds.has(init.existingImage.id))
+        .map((init) => init.existingImage!.id)
+
+      if (removedIds.length > 0) {
+        fd.append('removeImageIds', JSON.stringify(removedIds))
+      }
+
+      const sortOrder = images
+        .filter((img) => img.existingImage)
+        .map((img, index) => ({ id: img.existingImage!.id, sortOrder: index }))
+
+      if (sortOrder.length > 0) {
+        fd.append('imageSortOrder', JSON.stringify(sortOrder))
+      }
+    }
+
     images.forEach((img) => {
       if (img.file) {
         fd.append('images', img.file)

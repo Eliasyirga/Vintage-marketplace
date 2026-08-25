@@ -20,7 +20,6 @@ export async function seedAdmin(): Promise<void> {
       is_email_verified: true,
       is_phone_verified: true,
       is_fayda_verified: true,
-      is_face_verified: true,
     })
     console.log('✅ Admin user created successfully!')
   } else {

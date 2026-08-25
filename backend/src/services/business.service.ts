@@ -46,20 +46,11 @@ export async function upsertBusinessProfile(
   return profile
 }
 
+import { resolveUserTier } from './listingLimit.service'
+
 export async function getSellerListingLimit(userId: string): Promise<{
   maxActiveListings: number
-  tier: 'FREE' | 'PREMIUM' | 'BUSINESS'
+  tier: 'FREE' | 'PREMIUM' | 'BUSINESS' | 'ADMIN'
 }> {
-  const isBusiness = await entitlementService.hasEntitlement(userId, 'BUSINESS_ACCOUNT')
-  if (isBusiness) {
-    return { maxActiveListings: 9999, tier: 'BUSINESS' }
-  }
-
-  const isPremium = await entitlementService.hasEntitlement(userId, 'PREMIUM_SELLER')
-  if (isPremium) {
-    return { maxActiveListings: 50, tier: 'PREMIUM' }
-  }
-
-  // Free Tier
-  return { maxActiveListings: 10, tier: 'FREE' }
+  return resolveUserTier(userId)
 }

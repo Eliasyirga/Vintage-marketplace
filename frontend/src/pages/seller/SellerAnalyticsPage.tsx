@@ -10,8 +10,6 @@ import {
   Loader2,
   Sparkles,
 } from 'lucide-react'
-import Navbar from '../../components/layout/Navbar'
-import Footer from '../../components/layout/Footer'
 import * as analyticsService from '../../services/analytics.service'
 import type { SellerAnalytics } from '../../types/monetization'
 
@@ -30,10 +28,7 @@ export default function SellerAnalyticsPage() {
   }, [days])
 
   return (
-    <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col justify-between">
-      <Navbar />
-
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-stone-800 pb-6">
           <div>
@@ -237,9 +232,6 @@ export default function SellerAnalyticsPage() {
             )}
           </div>
         )}
-      </main>
-
-      <Footer />
     </div>
   )
 }

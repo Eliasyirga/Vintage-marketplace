@@ -12,7 +12,7 @@ export interface CreateAdInput {
   planId: string
   title: string
   description?: string
-  image: string
+  imageFile: File              // Image file to upload
   targetUrl: string
   placement: AdPlacement
 }
@@ -25,6 +25,19 @@ export async function getActiveSlots(): Promise<ActiveAdSlots> {
     '/advertisements/active',
   )
   return response.data.data
+}
+
+/**
+ * Fetch active ads for a specific placement slot (returns array for carousel).
+ */
+export async function getActiveAdByPlacement(
+  placement: AdPlacement,
+): Promise<Advertisement[]> {
+  const response = await api.get<{ success: boolean; data: Advertisement[] }>(
+    '/advertisements/active',
+    { params: { placement } },
+  )
+  return response.data.data ?? []
 }
 
 /**
@@ -49,11 +62,22 @@ export async function getAdPlans(): Promise<Plan[]> {
 
 /**
  * Create a new advertisement (enters PENDING_PAYMENT).
+ * Sends multipart/form-data — the image file is uploaded directly to the backend
+ * which streams it to Cloudinary without exposing API credentials to the frontend.
  */
 export async function createAdvertisement(input: CreateAdInput): Promise<Advertisement> {
+  const formData = new FormData()
+  formData.append('image', input.imageFile)
+  formData.append('planId', input.planId)
+  formData.append('title', input.title)
+  if (input.description) formData.append('description', input.description)
+  formData.append('targetUrl', input.targetUrl)
+  formData.append('placement', input.placement)
+
   const response = await api.post<{ success: boolean; data: Advertisement }>(
     '/advertisements',
-    input,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
   )
   return response.data.data
 }

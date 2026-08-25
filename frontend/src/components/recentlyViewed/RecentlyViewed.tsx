@@ -99,7 +99,7 @@ export function RecentlyViewed({
       )}
 
       {/* Grid of cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 lg:gap-6">
         {items.map((listing) => (
           <ListingCard key={listing.id} listing={listing} />
         ))}

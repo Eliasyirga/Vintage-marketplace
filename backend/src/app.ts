@@ -8,6 +8,7 @@ import { env } from './config/env'
 import { globalLimiter } from './middleware/rateLimit.middleware'
 import { errorMiddleware } from './middleware/error.middleware'
 import authRoutes from './routes/auth.routes'
+import accountRoutes from './routes/account.routes'
 import categoryRoutes from './routes/category.routes'
 import listingRoutes from './routes/listing.routes'
 import sellerRoutes from './routes/seller.routes'
@@ -36,7 +37,11 @@ import { ensureUploadDirectory } from './services/upload.service'
 const app = express()
 
 // ── Security headers ───────────────────────────────────────────────────────
-app.use(helmet())
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }),
+)
 
 // ── CORS ───────────────────────────────────────────────────────────────────
 app.use(
@@ -76,6 +81,7 @@ app.get('/api/health', (_req, res) => {
 
 // ── API routes ─────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes)
+app.use('/api/account', accountRoutes)
 app.use('/api/categories', categoryRoutes)
 app.use('/api/listings', listingRoutes)
 app.get('/api/my-listings', requireAuth, listingController.getMyListings)

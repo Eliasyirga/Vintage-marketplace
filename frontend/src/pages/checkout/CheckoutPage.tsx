@@ -3,8 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Loader2, AlertTriangle, ShieldCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
-import { Navbar } from '../../components/layout/Navbar'
-import { Footer } from '../../components/layout/Footer'
+import { WorkspaceHeader } from '../../components/layout/WorkspaceHeader'
 import { FulfillmentSelector } from '../../components/checkout/FulfillmentSelector'
 import { DeliveryForm } from '../../components/checkout/DeliveryForm'
 import { MeetingForm } from '../../components/checkout/MeetingForm'
@@ -185,35 +184,43 @@ export default function CheckoutPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-100 flex flex-col justify-between">
-        <Navbar />
-        <div className="flex flex-col items-center justify-center py-24 space-y-4">
+      <div className="min-h-screen bg-stone-100 flex flex-col font-sans">
+        <WorkspaceHeader
+          title="Secure Checkout"
+          backUrl={`/listings/${listingId || ''}`}
+          backLabel="Product"
+        />
+        <div className="flex-1 flex flex-col items-center justify-center py-24 space-y-4">
           <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
           <p className="text-sm font-bold text-stone-600">Preparing secure checkout...</p>
         </div>
-        <Footer />
       </div>
     )
   }
 
   if (!eligibilityData) {
     return (
-      <div className="min-h-screen bg-stone-100 flex flex-col justify-between">
-        <Navbar />
-        <div className="max-w-md mx-auto my-20 p-8 bg-white rounded-3xl border border-stone-200 text-center space-y-4">
-          <AlertTriangle className="w-12 h-12 text-amber-600 mx-auto" />
-          <h2 className="text-lg font-bold text-stone-900">Item Unavailable</h2>
-          <p className="text-xs text-stone-500">
-            This item cannot be purchased at this moment.
-          </p>
-          <Link
-            to="/marketplace"
-            className="inline-block px-5 py-2.5 rounded-xl bg-amber-600 text-white text-xs font-bold"
-          >
-            Return to Marketplace
-          </Link>
+      <div className="min-h-screen bg-stone-100 flex flex-col font-sans">
+        <WorkspaceHeader
+          title="Secure Checkout"
+          backUrl="/marketplace"
+          backLabel="Marketplace"
+        />
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="max-w-md w-full my-10 p-8 bg-white rounded-3xl border border-stone-200 text-center space-y-4 shadow-sm">
+            <AlertTriangle className="w-12 h-12 text-amber-600 mx-auto" />
+            <h2 className="text-lg font-bold text-stone-900">Item Unavailable</h2>
+            <p className="text-xs text-stone-500">
+              This item cannot be purchased at this moment.
+            </p>
+            <Link
+              to="/marketplace"
+              className="inline-block px-5 py-2.5 rounded-xl bg-amber-600 text-white text-xs font-bold shadow-xs"
+            >
+              Return to Marketplace
+            </Link>
+          </div>
         </div>
-        <Footer />
       </div>
     )
   }
@@ -222,8 +229,13 @@ export default function CheckoutPage() {
   const totalAmount = eligibilityData.listing.price + effectiveDeliveryFee
 
   return (
-    <div className="min-h-screen bg-stone-100 flex flex-col justify-between font-sans">
-      <Navbar />
+    <div className="min-h-screen bg-stone-100 flex flex-col font-sans">
+      <WorkspaceHeader
+        title="Secure Checkout"
+        subtitle={eligibilityData.listing.title}
+        backUrl={`/listings/${listingId}`}
+        backLabel="Product"
+      />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8 flex-1">
         {/* Navigation Breadcrumb */}
@@ -317,8 +329,6 @@ export default function CheckoutPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   )
 }

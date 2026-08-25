@@ -3,6 +3,9 @@ import type {
   RegisterFormData,
   LoginFormData,
   PendingRegistrationData,
+  ForgotPasswordData,
+  ResetPasswordData,
+  ChangePasswordData,
   AuthResponse,
   ApiResponse,
   User,
@@ -54,6 +57,30 @@ export async function login(
   return response.data
 }
 
+export async function forgotPassword(
+  data: ForgotPasswordData,
+): Promise<ApiResponse<{ resetId: string; maskedDestination: string }>> {
+  const response = await api.post<ApiResponse<{ resetId: string; maskedDestination: string }>>(
+    '/auth/forgot-password',
+    data,
+  )
+  return response.data
+}
+
+export async function resetPassword(
+  data: ResetPasswordData,
+): Promise<ApiResponse<null>> {
+  const response = await api.post<ApiResponse<null>>('/auth/reset-password', data)
+  return response.data
+}
+
+export async function changePassword(
+  data: ChangePasswordData,
+): Promise<ApiResponse<null>> {
+  const response = await api.post<ApiResponse<null>>('/auth/change-password', data)
+  return response.data
+}
+
 export async function getMe(): Promise<ApiResponse<{ user: User }>> {
   const response = await api.get<ApiResponse<{ user: User }>>('/auth/me')
   return response.data
@@ -62,3 +89,4 @@ export async function getMe(): Promise<ApiResponse<{ user: User }>> {
 export async function logout(): Promise<void> {
   await api.post('/auth/logout')
 }
+

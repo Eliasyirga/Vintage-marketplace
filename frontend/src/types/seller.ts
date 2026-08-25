@@ -12,7 +12,6 @@ export interface PublicSellerProfile {
   isEmailVerified: boolean
   isPhoneVerified: boolean
   isFaydaVerified: boolean
-  isFaceVerified: boolean
   activeListings: number
   soldListings: number
 }

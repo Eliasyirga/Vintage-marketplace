@@ -94,17 +94,19 @@ export interface BusinessProfile {
 }
 
 export type AdPlacement =
-  | 'HOME_TOP'
-  | 'MARKETPLACE_MIDDLE'
-  | 'MARKETPLACE_BOTTOM'
+  | 'MARKETPLACE_BANNER'
+  | 'MARKETPLACE_FEATURED'
+  | 'MARKETPLACE_SIDEBAR'
 
 export type AdStatus =
   | 'DRAFT'
   | 'PENDING_PAYMENT'
+  | 'PAYMENT_VERIFIED'
   | 'PENDING_REVIEW'
+  | 'APPROVED'
+  | 'REJECTED'
   | 'ACTIVE'
   | 'PAUSED'
-  | 'REJECTED'
   | 'EXPIRED'
   | 'CANCELLED'
 
@@ -115,12 +117,18 @@ export interface Advertisement {
   title: string
   description: string | null
   image: string
+  imagePublicId?: string | null
+  imageWidth?: number | null
+  imageHeight?: number | null
+  imageFormat?: string | null
+  imageBytes?: number | null
   targetUrl: string
   placement: AdPlacement
   budget: number
   status: AdStatus
   paymentId: string | null
   rejectionReason: string | null
+  reviewedAt?: string | null
   startAt: string | null
   endAt: string | null
   priority?: number
@@ -129,6 +137,7 @@ export interface Advertisement {
   ctr?: number
   isActive: boolean
   createdAt: string
+  updatedAt?: string
   advertiserName?: string
   advertiserAvatar?: string | null
   advertiser?: {
@@ -157,9 +166,9 @@ export interface Advertisement {
 }
 
 export interface ActiveAdSlots {
-  homeTop: Advertisement | null
-  marketplaceMiddle: Advertisement | null
-  marketplaceBottom: Advertisement | null
+  marketplaceBanner: Advertisement[]
+  marketplaceFeatured: Advertisement[]
+  marketplaceSidebar: Advertisement[]
 }
 
 export interface AvailablePlacementsResponse {

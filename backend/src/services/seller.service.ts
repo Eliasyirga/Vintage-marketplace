@@ -18,7 +18,6 @@ const listingIncludes = [
       'is_email_verified',
       'is_phone_verified',
       'is_fayda_verified',
-      'is_face_verified',
     ],
     include: [
       {
@@ -46,14 +45,16 @@ function formatPublicProfile(user: User, profile: SellerProfile | null): PublicS
     city: profile?.city ?? null,
     subCity: profile?.sub_city ?? null,
     neighborhood: profile?.neighborhood ?? null,
+    rating: profile?.rating ? Number(profile.rating) : null,
+    totalSales: profile?.total_sales ?? 0,
+    isActive: profile?.is_active ?? true,
     memberSince: user.created_at,
     isVerified,
     isEmailVerified: user.is_email_verified,
     isPhoneVerified: user.is_phone_verified,
     isFaydaVerified: user.is_fayda_verified,
-    isFaceVerified: user.is_face_verified,
-    activeListings: 0,  // populated by getPublicSellerProfile
-    soldListings: 0,    // populated by getPublicSellerProfile
+    activeListings: 0,  // populated by caller
+    soldListings: 0,    // populated by caller
   }
 }
 
@@ -68,7 +69,6 @@ export async function getPublicSellerProfile(sellerId: string): Promise<PublicSe
       'is_email_verified',
       'is_phone_verified',
       'is_fayda_verified',
-      'is_face_verified',
       'created_at',
     ],
     include: [
@@ -148,7 +148,6 @@ export async function getMySellerProfile(userId: string): Promise<PublicSellerPr
       'is_email_verified',
       'is_phone_verified',
       'is_fayda_verified',
-      'is_face_verified',
       'created_at',
     ],
     include: [

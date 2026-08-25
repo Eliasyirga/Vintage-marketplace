@@ -54,64 +54,64 @@ export default function AdminDashboard() {
   return (
     <AdminLayout title="Dashboard Overview" subtitle="Platform metrics & moderation activity">
       {/* 4 Top Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-stone-200 shadow-xs space-y-2">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        <div className="bg-white p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl border border-stone-200 shadow-2xs space-y-1.5 sm:space-y-2">
           <div className="flex items-center justify-between text-stone-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Total Users</span>
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Users className="w-4.5 h-4.5" />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Total Users</span>
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+              <Users className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-black text-stone-900">{stats?.totalUsers ?? 0}</p>
-          <p className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" /> +{stats?.newUsersToday ?? 0} joined today
+          <p className="text-xl sm:text-3xl font-black text-stone-900">{stats?.totalUsers ?? 0}</p>
+          <p className="text-[10px] sm:text-[11px] font-bold text-emerald-600 flex items-center gap-1">
+            <TrendingUp className="w-3 h-3" /> +{stats?.newUsersToday ?? 0} today
           </p>
         </div>
 
-        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-stone-200 shadow-xs space-y-2">
+        <div className="bg-white p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl border border-stone-200 shadow-2xs space-y-1.5 sm:space-y-2">
           <div className="flex items-center justify-between text-stone-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Active Listings</span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <Package className="w-4.5 h-4.5" />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Active Listings</span>
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <Package className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-black text-stone-900">{stats?.activeListings ?? 0}</p>
-          <p className="text-[11px] font-semibold text-stone-400">
+          <p className="text-xl sm:text-3xl font-black text-stone-900">{stats?.activeListings ?? 0}</p>
+          <p className="text-[10px] sm:text-[11px] font-semibold text-stone-400 truncate">
             {stats?.soldListings ?? 0} sold · +{stats?.newListingsToday ?? 0} today
           </p>
         </div>
 
-        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-stone-200 shadow-xs space-y-2">
+        <div className="bg-white p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl border border-stone-200 shadow-2xs space-y-1.5 sm:space-y-2">
           <div className="flex items-center justify-between text-stone-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Pending Reports</span>
-            <div className="w-9 h-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
-              <Flag className="w-4.5 h-4.5" />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Reports</span>
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
+              <Flag className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-black text-stone-900">{stats?.pendingReports ?? 0}</p>
+          <p className="text-xl sm:text-3xl font-black text-stone-900">{stats?.pendingReports ?? 0}</p>
           <Link
             to="/admin/reports"
-            className="text-[11px] font-bold text-red-600 hover:text-red-700 flex items-center gap-1"
+            className="text-[10px] sm:text-[11px] font-bold text-red-600 hover:text-red-700 flex items-center gap-1"
           >
-            Review Reports <ArrowRight className="w-3 h-3" />
+            Review <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
 
-        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-stone-200 shadow-xs space-y-2">
+        <div className="bg-white p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl border border-stone-200 shadow-2xs space-y-1.5 sm:space-y-2">
           <div className="flex items-center justify-between text-stone-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Verifications</span>
-            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-              <ShieldCheck className="w-4.5 h-4.5" />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Verifications</span>
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <ShieldCheck className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-black text-stone-900">
+          <p className="text-xl sm:text-3xl font-black text-stone-900">
             {stats?.pendingVerifications ?? 0}
           </p>
           <Link
             to="/admin/verifications"
-            className="text-[11px] font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1"
+            className="text-[10px] sm:text-[11px] font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1"
           >
-            Review Queue <ArrowRight className="w-3 h-3" />
+            Review <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
       </div>

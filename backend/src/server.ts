@@ -1,17 +1,21 @@
 import 'dotenv/config'
+import http from 'http'
 import app from './app'
 import { connectDatabase } from './config/database'
-// Import models so Sequelize registers them before sync
 import { env } from './config/env'
 import { seedAdvertisementPlans } from './scripts/seed-ad-plans'
+import { initSocketServer } from './socket/socket.service'
 
 async function start(): Promise<void> {
   try {
     await connectDatabase()
     await seedAdvertisementPlans()
 
-    app.listen(env.PORT, () => {
-      console.log(`\n🚀 Server running on http://localhost:${env.PORT}`)
+    const server = http.createServer(app)
+    initSocketServer(server)
+
+    server.listen(env.PORT, () => {
+      console.log(`\n🚀 Server & Socket.IO running on http://localhost:${env.PORT}`)
       console.log(`   Environment: ${env.NODE_ENV}`)
       console.log(`   Health:      http://localhost:${env.PORT}/api/health\n`)
     })

@@ -8,6 +8,7 @@ import {
   myListingsQuerySchema,
 } from "../schemas/listing.schema";
 import * as listingService from "../services/listing.service";
+import { getUserListingLimitDetails } from "../services/listingLimit.service";
 import {
   validateImageCount,
   validateTotalImageCount,
@@ -108,7 +109,18 @@ export async function createListing(
 
     res.status(201).json({ success: true, message, data: { listing } });
   } catch (err) {
-    const e = err as Error & { statusCode?: number; errors?: unknown };
+    const e = err as Error & { statusCode?: number; errors?: unknown; code?: string; limit?: number; currentCount?: number; tier?: string };
+    if (e.code === "LISTING_LIMIT_REACHED") {
+      res.status(403).json({
+        success: false,
+        code: e.code,
+        message: e.message,
+        limit: e.limit,
+        currentCount: e.currentCount,
+        tier: e.tier,
+      });
+      return;
+    }
     if (e.statusCode === 400 && e.errors) {
       sendValidationError(res, e);
       return;
@@ -256,7 +268,18 @@ export async function updateListing(
         data: { listing },
       });
   } catch (err) {
-    const e = err as Error & { statusCode?: number; errors?: unknown };
+    const e = err as Error & { statusCode?: number; errors?: unknown; code?: string; limit?: number; currentCount?: number; tier?: string };
+    if (e.code === "LISTING_LIMIT_REACHED") {
+      res.status(403).json({
+        success: false,
+        code: e.code,
+        message: e.message,
+        limit: e.limit,
+        currentCount: e.currentCount,
+        tier: e.tier,
+      });
+      return;
+    }
     if (e.statusCode === 400 && e.errors) {
       sendValidationError(res, e);
       return;
@@ -309,6 +332,28 @@ export async function deleteListing(
     res
       .status(200)
       .json({ success: true, message: "Listing archived and removed." });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getListingLimits(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const limitInfo = await getUserListingLimitDetails(req.user!.id);
+    res.status(200).json({
+      success: true,
+      data: {
+        tier: limitInfo.tier,
+        limit: limitInfo.limit,
+        currentCount: limitInfo.currentCount,
+        remaining: limitInfo.remaining,
+        canCreate: limitInfo.canCreate,
+      },
+    });
   } catch (err) {
     next(err);
   }

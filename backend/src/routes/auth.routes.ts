@@ -7,6 +7,7 @@ import {
   verifyOtpLimiter,
   resendOtpLimiter,
   loginLimiter,
+  refreshLimiter,
 } from '../middleware/rateLimit.middleware'
 import {
   registerSchema,
@@ -14,6 +15,9 @@ import {
   resendOtpSchema,
   changeMethodSchema,
   loginSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  changePasswordSchema,
 } from '../schemas/auth.schema'
 
 const router = Router()
@@ -55,10 +59,37 @@ router.post(
   authController.login,
 )
 
+router.post(
+  '/refresh',
+  refreshLimiter,
+  authController.refreshToken,
+)
+
+router.post(
+  '/forgot-password',
+  verifyOtpLimiter,
+  validate(forgotPasswordSchema),
+  authController.forgotPassword,
+)
+
+router.post(
+  '/reset-password',
+  verifyOtpLimiter,
+  validate(resetPasswordSchema),
+  authController.resetPassword,
+)
+
 router.post('/logout', authController.logout)
 
 // ── Protected routes ──────────────────────────────────────────────────────────
 
 router.get('/me', requireAuth, authController.me)
+
+router.post(
+  '/change-password',
+  requireAuth,
+  validate(changePasswordSchema),
+  authController.changePassword,
+)
 
 export default router

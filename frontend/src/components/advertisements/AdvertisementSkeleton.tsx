@@ -1,10 +1,15 @@
+import type { AdPlacement } from '../../types/monetization'
+
 interface AdvertisementSkeletonProps {
-  placement?: 'HOME_TOP' | 'MARKETPLACE_MIDDLE' | 'MARKETPLACE_BOTTOM'
+  placement?: AdPlacement
   className?: string
 }
 
-export function AdvertisementSkeleton({ placement = 'HOME_TOP', className = '' }: AdvertisementSkeletonProps) {
-  if (placement === 'MARKETPLACE_MIDDLE') {
+export function AdvertisementSkeleton({
+  placement = 'MARKETPLACE_BANNER',
+  className = '',
+}: AdvertisementSkeletonProps) {
+  if (placement === 'MARKETPLACE_FEATURED') {
     return (
       <div
         className={`rounded-3xl bg-white border border-stone-200 p-5 shadow-sm animate-pulse flex flex-col justify-between ${className}`}
@@ -20,6 +25,21 @@ export function AdvertisementSkeleton({ placement = 'HOME_TOP', className = '' }
     )
   }
 
+  if (placement === 'MARKETPLACE_SIDEBAR') {
+    return (
+      <div
+        className={`rounded-2xl bg-white border border-stone-200 p-4 shadow-sm animate-pulse space-y-3 ${className}`}
+      >
+        <div className="h-3 w-16 bg-stone-200 rounded-full" />
+        <div className="w-full aspect-square bg-stone-100 rounded-xl" />
+        <div className="h-4 w-3/4 bg-stone-200 rounded-md" />
+        <div className="h-3 w-full bg-stone-100 rounded-md" />
+        <div className="h-8 w-full bg-stone-200 rounded-xl mt-2" />
+      </div>
+    )
+  }
+
+  // MARKETPLACE_BANNER (default)
   return (
     <div
       className={`w-full rounded-3xl bg-white border border-stone-200 p-4 sm:p-6 shadow-sm animate-pulse flex flex-col md:flex-row items-center gap-5 ${className}`}

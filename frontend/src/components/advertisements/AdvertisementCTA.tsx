@@ -8,8 +8,8 @@ interface AdvertisementCTAProps {
 }
 
 export function AdvertisementCTA({ placement, className = '' }: AdvertisementCTAProps) {
-  // ── Placement 1: HOME_TOP CTA ──────────────────────────────────────────────
-  if (placement === 'HOME_TOP') {
+  // ── Placement 1: MARKETPLACE_BANNER CTA ────────────────────────────────────
+  if (placement === 'MARKETPLACE_BANNER') {
     return (
       <div
         className={`relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-stone-900/5 border border-amber-500/30 p-5 sm:p-6 lg:p-7 shadow-xs ${className}`}
@@ -25,7 +25,7 @@ export function AdvertisementCTA({ placement, className = '' }: AdvertisementCTA
                 <span>Partner Opportunity</span>
               </div>
               <h3 className="text-base sm:text-lg font-black text-stone-900 tracking-tight">
-                Grow Your Business on Bonda
+                Grow Your Business on Vintage Marketplace
               </h3>
               <p className="text-xs sm:text-sm text-stone-600 font-medium max-w-xl">
                 Put your brand in front of thousands of active buyers looking for electronics, vintage items, and fashion across Ethiopia.
@@ -35,10 +35,10 @@ export function AdvertisementCTA({ placement, className = '' }: AdvertisementCTA
 
           <div className="shrink-0 w-full md:w-auto">
             <Link
-              to="/advertise"
+              to="/advertise/create"
               className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-stone-900 hover:bg-amber-600 text-white font-black text-xs sm:text-sm transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
             >
-              <span>Advertise on Bonda</span>
+              <span>Advertise Here</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -47,8 +47,8 @@ export function AdvertisementCTA({ placement, className = '' }: AdvertisementCTA
     )
   }
 
-  // ── Placement 2: MARKETPLACE_MIDDLE CTA (In-Feed Card) ──────────────────────
-  if (placement === 'MARKETPLACE_MIDDLE') {
+  // ── Placement 2: MARKETPLACE_FEATURED CTA (In-Feed Card) ───────────────────
+  if (placement === 'MARKETPLACE_FEATURED') {
     return (
       <div
         className={`rounded-3xl bg-gradient-to-br from-amber-50 via-white to-amber-100/30 border-2 border-dashed border-amber-300 p-6 flex flex-col justify-between shadow-2xs hover:border-amber-400 transition-colors ${className}`}
@@ -73,7 +73,7 @@ export function AdvertisementCTA({ placement, className = '' }: AdvertisementCTA
 
         <div className="pt-4 mt-3 border-t border-amber-200/60">
           <Link
-            to="/advertise"
+            to="/advertise/create"
             className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-amber-600 text-white font-bold text-xs transition-colors shadow-2xs"
           >
             <span>Reserve This Spot</span>
@@ -84,34 +84,27 @@ export function AdvertisementCTA({ placement, className = '' }: AdvertisementCTA
     )
   }
 
-  // ── Placement 3: MARKETPLACE_BOTTOM CTA ────────────────────────────────────
+  // ── Placement 3: MARKETPLACE_SIDEBAR CTA ───────────────────────────────────
   return (
     <div
-      className={`rounded-3xl bg-gradient-to-r from-stone-900 via-stone-900 to-stone-950 border border-stone-800 text-white p-6 sm:p-7 shadow-sm ${className}`}
+      className={`rounded-2xl bg-gradient-to-br from-amber-50 via-stone-50 to-amber-100/30 border border-amber-200/80 p-4 text-center space-y-3 ${className}`}
     >
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-5 text-center sm:text-left">
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0">
-            <Megaphone className="w-6 h-6" />
-          </div>
-          <div className="space-y-1">
-            <h4 className="text-base sm:text-lg font-black text-white">
-              Reach Bonda Buyers Across Ethiopia
-            </h4>
-            <p className="text-xs sm:text-sm text-stone-400 max-w-lg font-medium">
-              Start with flexible 3, 7, or 30-day sponsored placements and track your live click-through performance.
-            </p>
-          </div>
-        </div>
-
-        <Link
-          to="/advertise"
-          className="shrink-0 inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs transition-transform duration-200 hover:scale-105 active:scale-95 shadow-md"
-        >
-          <span>Advertise Your Business</span>
-          <ArrowRight className="w-4 h-4" />
-        </Link>
+      <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center mx-auto">
+        <Megaphone className="w-5 h-5" />
       </div>
+      <div className="space-y-1">
+        <h5 className="text-sm font-bold text-stone-900">Advertise in Sidebar</h5>
+        <p className="text-xs text-stone-600 font-normal">
+          Get continuous desktop visibility on all marketplace searches.
+        </p>
+      </div>
+      <Link
+        to="/advertise/create"
+        className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-xl bg-stone-900 hover:bg-amber-600 text-white text-xs font-bold transition-colors"
+      >
+        <span>Advertise Now</span>
+        <ArrowRight className="w-3.5 h-3.5" />
+      </Link>
     </div>
   )
 }

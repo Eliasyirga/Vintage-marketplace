@@ -1,8 +1,9 @@
 import { Op, Order, WhereOptions } from "sequelize";
 import { sequelize } from "../config/database";
-import { Listing, ListingImage, User, Category } from "../models";
+import { Listing, ListingImage, User, Category, SellerProfile } from "../models";
 import * as categoryService from "./category.service";
 import * as uploadService from "./upload.service";
+import { assertCanCreateActiveListing } from "./listingLimit.service";
 import type {
   CreateListingInput,
   UpdateListingInput,
@@ -23,7 +24,6 @@ function formatSeller(user: User): SafeSeller {
     isEmailVerified: user.is_email_verified,
     isPhoneVerified: user.is_phone_verified,
     isFaydaVerified: user.is_fayda_verified,
-    isFaceVerified: user.is_face_verified,
   };
 }
 
@@ -72,7 +72,6 @@ function formatListing(listing: Listing): SafeListing {
           isEmailVerified: false,
           isPhoneVerified: false,
           isFaydaVerified: false,
-          isFaceVerified: false,
         },
   };
 }
@@ -93,7 +92,6 @@ const listingIncludes = [
       "is_email_verified",
       "is_phone_verified",
       "is_fayda_verified",
-      "is_face_verified",
     ],
   },
   { model: ListingImage, as: "images" },
@@ -135,13 +133,26 @@ export async function createListing(
   }
 
   const status = input.status ?? "ACTIVE";
+  const listingId = crypto.randomUUID();
+
   const uploadedImages = await Promise.all(
-    files.map((file) => uploadService.saveListingImage(file)),
+    files.map((file) => uploadService.saveListingImage(file, listingId)),
   );
 
+  // Ensure SellerProfile exists for this user so selling capability is enabled
+  await SellerProfile.findOrCreate({
+    where: { user_id: sellerId },
+    defaults: { user_id: sellerId, is_active: true },
+  });
+
   const listing = await sequelize.transaction(async (transaction) => {
+    if (status === "ACTIVE") {
+      await assertCanCreateActiveListing(sellerId, transaction);
+    }
+
     const created = await Listing.create(
       {
+        id: listingId,
         seller_id: sellerId,
         category_id: input.categoryId,
         title: input.title.trim(),
@@ -165,6 +176,11 @@ export async function createListing(
           public_id: image.publicId,
           alt_text: input.title.trim(),
           sort_order: index,
+          is_cover: index === 0,
+          width: image.width ?? null,
+          height: image.height ?? null,
+          format: image.format ?? null,
+          bytes: image.bytes ?? null,
         })),
         { transaction },
       );
@@ -368,7 +384,7 @@ export async function updateListing(
   }
 
   const uploadedImages = await Promise.all(
-    files.map((file) => uploadService.saveListingImage(file)),
+    files.map((file) => uploadService.saveListingImage(file, listing.id)),
   );
   const imagesToDelete = existingImages.filter((img) =>
     removeIds.includes(img.id),
@@ -388,6 +404,9 @@ export async function updateListing(
       listing.neighborhood = input.neighborhood.trim() || null;
 
     if (input.status !== undefined) {
+      if (input.status === "ACTIVE" && listing.status !== "ACTIVE" && listing.status !== "RESERVED") {
+        await assertCanCreateActiveListing(sellerId, transaction, listing.id);
+      }
       listing.status = input.status;
       if (input.status === "ACTIVE" && !listing.published_at) {
         listing.published_at = new Date();
@@ -425,6 +444,11 @@ export async function updateListing(
           public_id: image.publicId,
           alt_text: listing.title,
           sort_order: startOrder + index,
+          is_cover: remainingAfterRemoval.length === 0 && index === 0,
+          width: image.width ?? null,
+          height: image.height ?? null,
+          format: image.format ?? null,
+          bytes: image.bytes ?? null,
         })),
         { transaction },
       );
@@ -487,11 +511,17 @@ export async function updateListingStatus(
     }
   }
 
-  listing.status = status;
-  if (status === "ACTIVE" && !listing.published_at) {
-    listing.published_at = new Date();
-  }
-  await listing.save();
+  await sequelize.transaction(async (transaction) => {
+    if (status === "ACTIVE" && listing.status !== "ACTIVE" && listing.status !== "RESERVED") {
+      await assertCanCreateActiveListing(sellerId, transaction, listing.id);
+    }
+
+    listing.status = status;
+    if (status === "ACTIVE" && !listing.published_at) {
+      listing.published_at = new Date();
+    }
+    await listing.save({ transaction });
+  });
 
   const updated = await Listing.findByPk(listing.id, {
     include: listingIncludes,

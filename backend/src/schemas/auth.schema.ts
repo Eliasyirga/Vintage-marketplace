@@ -149,3 +149,59 @@ export const changeMethodSchema = z
   })
 
 export type ChangeMethodSchema = z.infer<typeof changeMethodSchema>
+
+// ─── Forgot Password ──────────────────────────────────────────────────────────
+
+export const forgotPasswordSchema = z.object({
+  identifier: z
+    .string()
+    .trim()
+    .min(1, 'Please enter your registered email or Ethiopian phone number.')
+    .max(320),
+})
+
+export type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>
+
+// ─── Reset Password ───────────────────────────────────────────────────────────
+
+export const resetPasswordSchema = z
+  .object({
+    resetId: z.string().uuid('Invalid reset session ID.'),
+    otp: z
+      .string()
+      .length(6, 'Verification code must be exactly 6 digits.')
+      .regex(/^\d{6}$/, 'Verification code must contain only digits.'),
+    newPassword: passwordField,
+    confirmPassword: z.string(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.newPassword !== data.confirmPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Passwords do not match.',
+        path: ['confirmPassword'],
+      })
+    }
+  })
+
+export type ResetPasswordSchema = z.infer<typeof resetPasswordSchema>
+
+// ─── Change Password (Authenticated) ──────────────────────────────────────────
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required.'),
+    newPassword: passwordField,
+    confirmPassword: z.string(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.newPassword !== data.confirmPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Passwords do not match.',
+        path: ['confirmPassword'],
+      })
+    }
+  })
+
+export type ChangePasswordSchema = z.infer<typeof changePasswordSchema>

@@ -1,8 +1,8 @@
 import { DataTypes, Model, Optional } from 'sequelize'
 import { sequelize } from '../config/database'
 
-export type VerificationType = 'EMAIL' | 'PHONE' | 'NATIONAL_ID' | 'FACE' | 'BUSINESS'
-export type VerificationStatus = 'UNVERIFIED' | 'PENDING' | 'PAID_PENDING' | 'VERIFIED' | 'REJECTED'
+export type VerificationType = 'EMAIL' | 'PHONE' | 'NATIONAL_ID' | 'BUSINESS'
+export type VerificationStatus = 'UNVERIFIED' | 'PENDING' | 'PAID_PENDING' | 'VERIFIED' | 'REJECTED' | 'EXPIRED'
 
 interface UserVerificationAttributes {
   id: string
@@ -14,6 +14,10 @@ interface UserVerificationAttributes {
   verified_at: Date | null
   verified_by: string | null
   rejection_reason: string | null
+  // Fayda OIDC fields — populated during the OIDC flow
+  fayda_state_token: string | null   // secure random nonce (anti-CSRF)
+  fayda_state_expires_at: Date | null // nonce expiry (10 min)
+  fayda_subject_hash: string | null   // SHA-256 of Fayda sub claim
   created_at?: Date
   updated_at?: Date
 }
@@ -26,6 +30,9 @@ type UserVerificationCreationAttributes = Optional<
   | 'verified_at'
   | 'verified_by'
   | 'rejection_reason'
+  | 'fayda_state_token'
+  | 'fayda_state_expires_at'
+  | 'fayda_subject_hash'
   | 'created_at'
   | 'updated_at'
 >
@@ -43,6 +50,9 @@ class UserVerification extends Model<
   declare verified_at: Date | null
   declare verified_by: string | null
   declare rejection_reason: string | null
+  declare fayda_state_token: string | null
+  declare fayda_state_expires_at: Date | null
+  declare fayda_subject_hash: string | null
   declare readonly created_at: Date
   declare readonly updated_at: Date
 
@@ -76,11 +86,11 @@ UserVerification.init(
       onUpdate: 'CASCADE',
     },
     verification_type: {
-      type: DataTypes.ENUM('EMAIL', 'PHONE', 'NATIONAL_ID', 'FACE', 'BUSINESS'),
+      type: DataTypes.ENUM('EMAIL', 'PHONE', 'NATIONAL_ID', 'BUSINESS'),
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM('UNVERIFIED', 'PENDING', 'PAID_PENDING', 'VERIFIED', 'REJECTED'),
+      type: DataTypes.ENUM('UNVERIFIED', 'PENDING', 'PAID_PENDING', 'VERIFIED', 'REJECTED', 'EXPIRED'),
       allowNull: false,
       defaultValue: 'PENDING',
     },
@@ -110,6 +120,18 @@ UserVerification.init(
       type: DataTypes.STRING(500),
       allowNull: true,
     },
+    fayda_state_token: {
+      type: DataTypes.STRING(128),
+      allowNull: true,
+    },
+    fayda_state_expires_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    fayda_subject_hash: {
+      type: DataTypes.STRING(64),
+      allowNull: true,
+    },
   },
   {
     sequelize,
@@ -134,6 +156,12 @@ UserVerification.init(
         unique: true,
         fields: ['user_id', 'verification_type'],
         name: 'idx_verifications_user_type_unique',
+      },
+      {
+        unique: true,
+        fields: ['fayda_subject_hash'],
+        name: 'idx_verifications_fayda_subject_hash',
+        where: { fayda_subject_hash: { [require('sequelize').Op.ne]: null } },
       },
     ],
   },

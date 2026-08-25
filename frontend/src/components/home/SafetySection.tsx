@@ -51,15 +51,15 @@ export default function SafetySection() {
         </div>
 
         {/* Safety Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {safetyPoints.map((point) => {
             const Icon = point.icon
             return (
               <div
                 key={point.title}
-                className="p-6 bg-stone-50 border border-stone-200/90 rounded-3xl transition-all duration-300 hover:border-amber-500/60 hover:shadow-md"
+                className="p-4 sm:p-6 bg-stone-50 border border-stone-200/90 rounded-2xl sm:rounded-3xl transition-all duration-300 hover:border-amber-500/60 hover:shadow-md"
               >
-                <div className="w-11 h-11 rounded-2xl bg-amber-100 border border-amber-200 text-amber-700 flex items-center justify-center mb-4 font-bold">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-amber-100 border border-amber-200 text-amber-700 flex items-center justify-center mb-3 sm:mb-4 font-bold">
                   <Icon className="w-5 h-5" />
                 </div>
                 <h3 className="text-base font-bold text-stone-900 mb-1.5">{point.title}</h3>

@@ -400,7 +400,7 @@ export default function AdminMonetization() {
 
                 {/* 3 Placements Status Overview */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {(['HOME_TOP', 'MARKETPLACE_MIDDLE', 'MARKETPLACE_BOTTOM'] as const).map((placementName) => {
+                  {(['MARKETPLACE_BANNER', 'MARKETPLACE_FEATURED', 'MARKETPLACE_SIDEBAR'] as const).map((placementName) => {
                     const activeAdInSlot = ads.find(
                       (a) => a.placement === placementName && a.status === 'ACTIVE',
                     )
@@ -503,7 +503,7 @@ export default function AdminMonetization() {
                           </div>
 
                           <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
-                            {ad.status === 'PENDING_REVIEW' && (
+                            {(ad.status === 'PENDING_REVIEW' || ad.status === 'PAYMENT_VERIFIED') && (
                               <>
                                 <button
                                   onClick={() => handleApproveAd(ad.id)}

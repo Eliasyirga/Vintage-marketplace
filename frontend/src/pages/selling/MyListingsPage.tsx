@@ -1,11 +1,10 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { getMyListings, updateListingStatus, deleteListing } from '../../services/listing.service'
+import { ListingLimitBanner } from '../../components/listings/ListingLimitBanner'
 import type { Listing, ListingStatus } from '../../types/listing'
 import { ListingCard } from '../../components/listings/ListingCard'
 import { PromoteListingModal } from '../../components/monetization/PromoteListingModal'
-import Navbar from '../../components/layout/Navbar'
-import Footer from '../../components/layout/Footer'
 import { Plus, Package, Loader2, RefreshCw, Rocket, BarChart3 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -65,10 +64,7 @@ export default function MyListingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-900 flex flex-col justify-between selection:bg-amber-500 selection:text-white">
-      <Navbar />
-
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-8 sm:py-12 space-y-8">
+    <div className="space-y-6">
         {/* Top Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-stone-200">
           <div>
@@ -107,6 +103,9 @@ export default function MyListingsPage() {
             </Link>
           </div>
         </div>
+
+        {/* Listing Limit Banner */}
+        <ListingLimitBanner />
 
         {/* Filter Tabs */}
         <div className="flex items-center justify-between overflow-x-auto pb-2 border-b border-stone-200 gap-2">
@@ -168,7 +167,7 @@ export default function MyListingsPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6">
             {listings.map((listing) => (
               <ListingCard
                 key={listing.id}
@@ -181,16 +180,12 @@ export default function MyListingsPage() {
             ))}
           </div>
         )}
-      </main>
 
-      {/* Promote Listing Modal */}
       <PromoteListingModal
         isOpen={Boolean(promoteTarget)}
         onClose={() => setPromoteTarget(null)}
         listing={promoteTarget}
       />
-
-      <Footer />
     </div>
   )
 }

@@ -101,3 +101,17 @@ export async function updateListingStatus(
 export async function deleteListing(id: string): Promise<void> {
   await api.delete(`/listings/${id}`)
 }
+
+export interface ListingLimitInfo {
+  tier: 'FREE' | 'PREMIUM' | 'BUSINESS' | 'ADMIN'
+  limit: number
+  currentCount: number
+  remaining: number
+  canCreate: boolean
+}
+
+export async function getListingLimits(): Promise<ListingLimitInfo> {
+  const response = await api.get<{ success: boolean; data: ListingLimitInfo }>('/listings/limits/me')
+  return response.data.data
+}
+

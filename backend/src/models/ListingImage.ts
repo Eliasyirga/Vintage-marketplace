@@ -4,16 +4,32 @@ import { sequelize } from '../config/database'
 interface ListingImageAttributes {
   id: string
   listing_id: string
-  url: string
-  public_id: string | null
+  url: string        // Cloudinary secure_url or legacy local path
+  public_id: string | null  // Cloudinary public_id (used for deletion / transforms)
   alt_text: string | null
   sort_order: number
+  is_cover: boolean
+  width: number | null
+  height: number | null
+  format: string | null
+  bytes: number | null
   created_at?: Date
+  updated_at?: Date
 }
 
 type ListingImageCreationAttributes = Optional<
   ListingImageAttributes,
-  'id' | 'public_id' | 'alt_text' | 'sort_order' | 'created_at'
+  | 'id'
+  | 'public_id'
+  | 'alt_text'
+  | 'sort_order'
+  | 'is_cover'
+  | 'width'
+  | 'height'
+  | 'format'
+  | 'bytes'
+  | 'created_at'
+  | 'updated_at'
 >
 
 class ListingImage extends Model<ListingImageAttributes, ListingImageCreationAttributes> {
@@ -23,7 +39,13 @@ class ListingImage extends Model<ListingImageAttributes, ListingImageCreationAtt
   declare public_id: string | null
   declare alt_text: string | null
   declare sort_order: number
+  declare is_cover: boolean
+  declare width: number | null
+  declare height: number | null
+  declare format: string | null
+  declare bytes: number | null
   declare readonly created_at: Date
+  declare readonly updated_at: Date
 
   toSafeObject() {
     return {
@@ -31,6 +53,11 @@ class ListingImage extends Model<ListingImageAttributes, ListingImageCreationAtt
       url: this.url,
       altText: this.alt_text,
       sortOrder: this.sort_order,
+      isCover: this.is_cover,
+      width: this.width,
+      height: this.height,
+      format: this.format,
+      bytes: this.bytes,
     }
   }
 }
@@ -66,17 +93,39 @@ ListingImage.init(
       allowNull: false,
       defaultValue: 0,
     },
-    created_at: {
-      type: DataTypes.DATE,
+    is_cover: {
+      type: DataTypes.BOOLEAN,
       allowNull: false,
-      defaultValue: DataTypes.NOW,
+      defaultValue: false,
+    },
+    width: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    height: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    format: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+    },
+    bytes: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
   },
   {
     sequelize,
     tableName: 'listing_images',
-    timestamps: false,
-    indexes: [{ fields: ['listing_id'] }, { fields: ['listing_id', 'sort_order'] }],
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+    indexes: [
+      { fields: ['listing_id'] },
+      { fields: ['listing_id', 'sort_order'] },
+      { fields: ['listing_id', 'is_cover'] },
+    ],
   },
 )
 

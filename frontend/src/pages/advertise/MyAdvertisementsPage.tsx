@@ -101,6 +101,18 @@ export default function MyAdvertisementsPage() {
             In Review
           </span>
         )
+      case 'PAYMENT_VERIFIED':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-0.5 rounded-full">
+            Payment Verified
+          </span>
+        )
+      case 'APPROVED':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+            Approved
+          </span>
+        )
       case 'PENDING_PAYMENT':
         return (
           <span className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-full">

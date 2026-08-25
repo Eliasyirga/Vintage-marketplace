@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a16207" />
+      <stop offset="100%" stop-color="#854d0e" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <rect width="800" height="800" fill="url(#bgGrad)"/>
+  <circle cx="400" cy="360" r="220" fill="#ffffff" opacity="0.12"/>
+  <circle cx="400" cy="360" r="160" fill="#ffffff" opacity="0.2"/>
+  
+  <!-- Icon / Symbol Centerpiece -->
+  <g transform="translate(400, 360)" filter="url(#shadow)">
+    <text x="0" y="30" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="110" text-anchor="middle" fill="#ffffff">🪑</text>
+  </g>
+  
+  <!-- Category Tag -->
+  <rect x="250" y="80" width="300" height="42" rx="21" fill="#ffffff" opacity="0.25"/>
+  <text x="400" y="107" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" text-anchor="middle" fill="#ffffff" letter-spacing="2">FURNITURE</text>
+  
+  <!-- Product Title & Price Card -->
+  <rect x="60" y="600" width="680" height="140" rx="24" fill="#ffffff" opacity="0.95" filter="url(#shadow)"/>
+  <text x="90" y="650" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="800" fill="#1c1917">Dining Chairs Set of 4 (Upholstered V...</text>
+  <text x="90" y="685" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="600" fill="#78716c">Authentic Vintage Marketplace Item</text>
+  <text x="700" y="670" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="26" font-weight="900" text-anchor="end" fill="#d97706">22,000 ETB</text>
+</svg>

@@ -12,8 +12,8 @@ export interface User {
   isEmailVerified: boolean
   isPhoneVerified: boolean
   isFaydaVerified: boolean
-  isFaceVerified: boolean
   avatarUrl: string | null
+  lastLoginAt?: string | null
   createdAt: string
 }
 
@@ -36,6 +36,23 @@ export interface PendingRegistrationData {
   maskedDestination: string
 }
 
+export interface ForgotPasswordData {
+  identifier: string
+}
+
+export interface ResetPasswordData {
+  resetId: string
+  otp: string
+  newPassword: string
+  confirmPassword: string
+}
+
+export interface ChangePasswordData {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
 export interface AuthResponse {
   user: User
   accessToken: string
@@ -47,3 +64,4 @@ export interface ApiResponse<T = unknown> {
   data?: T
   errors?: Array<{ field: string; message: string }>
 }
+

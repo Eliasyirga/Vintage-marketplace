@@ -16,3 +16,14 @@ export async function requestVerification(
   })
   return response.data.data.verification
 }
+
+/**
+ * Initiate Fayda OIDC verification.
+ * Returns { redirectUrl } where the user's browser should be redirected.
+ */
+export async function initiateFaydaVerification(): Promise<{ redirectUrl: string }> {
+  const response = await api.post<{ success: boolean; data: { redirectUrl: string } }>(
+    '/verifications/fayda/initiate',
+  )
+  return response.data.data
+}

@@ -46,10 +46,10 @@ export function Navbar() {
   const navLinks = [
     { to: '/', label: 'Home' },
     { to: '/browse', label: 'Browse' },
-    { to: '/advertise', label: 'Advertise' },
+    { to: '/categories', label: 'Categories' },
+    { to: '/how-it-works', label: 'How It Works' },
     { to: '/pricing', label: 'Pricing' },
-    { href: '#categories', label: 'Categories' },
-    { href: '#how-it-works', label: 'How It Works' },
+    { to: '/advertise', label: 'Advertise' },
   ]
 
   return (
@@ -82,29 +82,19 @@ export function Navbar() {
 
           {/* ── Desktop Nav ── */}
           <nav className="hidden md:flex items-center gap-1 text-sm font-semibold">
-            {navLinks.map(({ to, href, label }) =>
-              to ? (
-                <Link
-                  key={label}
-                  to={to}
-                  className={`px-3 py-2 rounded-lg transition-colors duration-150 ${
-                    isActive(to)
-                      ? 'text-amber-700 bg-amber-50 font-bold'
-                      : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
-                  }`}
-                >
-                  {label}
-                </Link>
-              ) : (
-                <a
-                  key={label}
-                  href={href}
-                  className="px-3 py-2 rounded-lg text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors duration-150"
-                >
-                  {label}
-                </a>
-              )
-            )}
+            {navLinks.map(({ to, label }) => (
+              <Link
+                key={label}
+                to={to}
+                className={`px-3 py-2 rounded-lg transition-colors duration-150 ${
+                  isActive(to)
+                    ? 'text-amber-700 bg-amber-50 font-bold'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+                }`}
+              >
+                {label}
+              </Link>
+            ))}
           </nav>
 
           {/* ── Desktop Search ── */}
@@ -123,7 +113,7 @@ export function Navbar() {
           </form>
 
           {/* ── Desktop Actions ── */}
-          <div className="hidden sm:flex items-center gap-2.5">
+          <div className="hidden md:flex items-center gap-2.5">
             {/* Sell Button */}
             <Link
               to="/sell"
@@ -237,12 +227,12 @@ export function Navbar() {
             )}
           </div>
 
-          {/* ── Mobile Buttons ── */}
-          <div className="flex items-center gap-2 sm:hidden">
+          {/* ── Mobile & Tablet Action Buttons ── */}
+          <div className="flex items-center gap-2 md:hidden">
             <button
               type="button"
               onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
-              className="p-2 rounded-xl bg-stone-100 border border-stone-200 text-stone-700"
+              className="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 border border-stone-200 text-stone-700 transition-colors"
               aria-label="Toggle mobile search"
             >
               <Search className="w-5 h-5" />
@@ -250,7 +240,7 @@ export function Navbar() {
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-xl bg-stone-100 border border-stone-200 text-stone-700"
+              className="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 border border-stone-200 text-stone-700 transition-colors"
               aria-label="Toggle mobile menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -260,7 +250,7 @@ export function Navbar() {
 
         {/* Mobile Search */}
         {mobileSearchOpen && (
-          <div className="sm:hidden py-3 border-t border-stone-200">
+          <div className="md:hidden py-3 border-t border-stone-200">
             <form onSubmit={handleSearchSubmit} className="flex gap-2">
               <input
                 type="text"
@@ -270,7 +260,7 @@ export function Navbar() {
                 className="flex-1 bg-stone-100 border border-stone-200 rounded-xl px-4 py-2.5 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:border-amber-500 focus:bg-white"
                 autoFocus
               />
-              <button type="submit" className="bg-amber-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold">
+              <button type="submit" className="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-xs transition-colors">
                 Go
               </button>
             </form>
@@ -279,31 +269,20 @@ export function Navbar() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="sm:hidden py-4 border-t border-stone-200 space-y-3">
+          <div className="md:hidden py-4 border-t border-stone-200 space-y-3">
             <nav className="flex flex-col">
-              {navLinks.map(({ to, href, label }) =>
-                to ? (
-                  <Link
-                    key={label}
-                    to={to}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-                      isActive(to) ? 'text-amber-700 bg-amber-50 font-bold' : 'text-stone-800 hover:bg-stone-100'
-                    }`}
-                  >
-                    {label}
-                  </Link>
-                ) : (
-                  <a
-                    key={label}
-                    href={href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="px-3 py-2.5 rounded-xl text-sm font-semibold text-stone-800 hover:bg-stone-100"
-                  >
-                    {label}
-                  </a>
-                )
-              )}
+              {navLinks.map(({ to, label }) => (
+                <Link
+                  key={label}
+                  to={to}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                    isActive(to) ? 'text-amber-700 bg-amber-50 font-bold' : 'text-stone-800 hover:bg-stone-100'
+                  }`}
+                >
+                  {label}
+                </Link>
+              ))}
             </nav>
 
             <div className="pt-2 border-t border-stone-200 space-y-2">
@@ -322,9 +301,9 @@ export function Navbar() {
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 text-white flex items-center justify-center font-bold text-xs">
                       {user?.fullName?.charAt(0).toUpperCase() || 'U'}
                     </div>
-                    <div>
-                      <p className="text-xs font-bold text-stone-900">{user?.fullName}</p>
-                      <p className="text-[10px] text-stone-400">{user?.email || user?.phone}</p>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-stone-900 truncate">{user?.fullName}</p>
+                      <p className="text-[10px] text-stone-400 truncate">{user?.email || user?.phone}</p>
                     </div>
                   </div>
                   {[
@@ -359,14 +338,14 @@ export function Navbar() {
                   <Link
                     to="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="text-center py-2.5 text-sm font-bold text-stone-800 bg-stone-100 rounded-xl border border-stone-200"
+                    className="text-center py-2.5 text-sm font-bold text-stone-800 bg-stone-100 hover:bg-stone-200 rounded-xl border border-stone-200"
                   >
                     Login
                   </Link>
                   <Link
                     to="/register"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="text-center py-2.5 text-sm font-bold text-white bg-stone-900 rounded-xl"
+                    className="text-center py-2.5 text-sm font-bold text-white bg-stone-900 hover:bg-stone-800 rounded-xl"
                   >
                     Sign Up
                   </Link>

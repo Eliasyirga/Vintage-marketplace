@@ -8,10 +8,16 @@ export interface AdvertisementAttributes {
   plan_id: string | null
   title: string
   description: string | null
-  image: string
+  // Creative image
+  image: string          // Cloudinary secure_url or legacy local URL
+  image_public_id: string | null  // Cloudinary public_id for deletion/transforms
+  image_width: number | null
+  image_height: number | null
+  image_format: string | null
+  image_bytes: number | null
   target_url: string
   placement: AdPlacement
-  budget: string // DECIMAL(12, 2) — resolved from plan at creation time
+  budget: string          // DECIMAL(12, 2) — locked from plan at creation time
   status: AdStatus
   payment_id: string | null
   rejection_reason: string | null
@@ -31,6 +37,11 @@ type AdvertisementCreationAttributes = Optional<
   | 'id'
   | 'plan_id'
   | 'description'
+  | 'image_public_id'
+  | 'image_width'
+  | 'image_height'
+  | 'image_format'
+  | 'image_bytes'
   | 'payment_id'
   | 'rejection_reason'
   | 'reviewed_by'
@@ -55,6 +66,11 @@ class Advertisement extends Model<
   declare title: string
   declare description: string | null
   declare image: string
+  declare image_public_id: string | null
+  declare image_width: number | null
+  declare image_height: number | null
+  declare image_format: string | null
+  declare image_bytes: number | null
   declare target_url: string
   declare placement: AdPlacement
   declare budget: string
@@ -87,6 +103,11 @@ class Advertisement extends Model<
       title: this.title,
       description: this.description,
       image: this.image,
+      imagePublicId: this.image_public_id,
+      imageWidth: this.image_width,
+      imageHeight: this.image_height,
+      imageFormat: this.image_format,
+      imageBytes: this.image_bytes,
       targetUrl: this.target_url,
       placement: this.placement,
       budget: Number(this.budget),
@@ -100,9 +121,12 @@ class Advertisement extends Model<
       priority: this.priority,
       clickCount: this.click_count,
       impressionCount: this.impression_count,
-      ctr: this.impression_count > 0
-        ? Number(((this.click_count / this.impression_count) * 100).toFixed(2))
-        : 0,
+      ctr:
+        this.impression_count > 0
+          ? Number(
+              ((this.click_count / this.impression_count) * 100).toFixed(2),
+            )
+          : 0,
       isActive: this.isActive(),
       createdAt: this.created_at,
       updatedAt: this.updated_at,
@@ -143,15 +167,35 @@ Advertisement.init(
       type: DataTypes.STRING(2048),
       allowNull: false,
     },
+    image_public_id: {
+      type: DataTypes.STRING(512),
+      allowNull: true,
+    },
+    image_width: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    image_height: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    image_format: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+    },
+    image_bytes: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     target_url: {
       type: DataTypes.STRING(2048),
       allowNull: false,
     },
     placement: {
       type: DataTypes.ENUM(
-        'HOME_TOP',
-        'MARKETPLACE_MIDDLE',
-        'MARKETPLACE_BOTTOM',
+        'MARKETPLACE_BANNER',
+        'MARKETPLACE_FEATURED',
+        'MARKETPLACE_SIDEBAR',
       ),
       allowNull: false,
     },
@@ -164,10 +208,12 @@ Advertisement.init(
       type: DataTypes.ENUM(
         'DRAFT',
         'PENDING_PAYMENT',
+        'PAYMENT_VERIFIED',
         'PENDING_REVIEW',
+        'APPROVED',
+        'REJECTED',
         'ACTIVE',
         'PAUSED',
-        'REJECTED',
         'EXPIRED',
         'CANCELLED',
       ),
@@ -228,7 +274,10 @@ Advertisement.init(
     updatedAt: 'updated_at',
     indexes: [
       { name: 'idx_advertisements_advertiser_id', fields: ['advertiser_id'] },
-      { name: 'idx_advertisements_placement_status', fields: ['placement', 'status'] },
+      {
+        name: 'idx_advertisements_placement_status',
+        fields: ['placement', 'status'],
+      },
       { name: 'idx_advertisements_start_end', fields: ['start_at', 'end_at'] },
       {
         name: 'idx_advertisements_active_query',

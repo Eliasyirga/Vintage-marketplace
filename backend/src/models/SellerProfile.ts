@@ -10,6 +10,9 @@ interface SellerProfileAttributes {
   city: string | null
   sub_city: string | null
   neighborhood: string | null
+  rating: string | null // DECIMAL(3,2)
+  total_sales: number
+  is_active: boolean
   created_at?: Date
   updated_at?: Date
 }
@@ -23,6 +26,9 @@ type SellerProfileCreationAttributes = Optional<
   | 'city'
   | 'sub_city'
   | 'neighborhood'
+  | 'rating'
+  | 'total_sales'
+  | 'is_active'
   | 'created_at'
   | 'updated_at'
 >
@@ -39,6 +45,9 @@ class SellerProfile extends Model<
   declare city: string | null
   declare sub_city: string | null
   declare neighborhood: string | null
+  declare rating: string | null
+  declare total_sales: number
+  declare is_active: boolean
   declare readonly created_at: Date
   declare readonly updated_at: Date
 
@@ -53,6 +62,9 @@ class SellerProfile extends Model<
       city: this.city,
       subCity: this.sub_city,
       neighborhood: this.neighborhood,
+      rating: this.rating !== null ? Number(this.rating) : null,
+      totalSales: this.total_sales,
+      isActive: this.is_active,
       createdAt: this.created_at,
       updatedAt: this.updated_at,
     }
@@ -97,6 +109,21 @@ SellerProfile.init(
     neighborhood: {
       type: DataTypes.STRING(100),
       allowNull: true,
+    },
+    rating: {
+      type: DataTypes.DECIMAL(3, 2),
+      allowNull: true,
+      defaultValue: null,
+    },
+    total_sales: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    is_active: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
     },
   },
   {

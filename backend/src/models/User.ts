@@ -13,13 +13,13 @@ interface UserAttributes {
   is_email_verified: boolean
   is_phone_verified: boolean
   is_fayda_verified: boolean
-  is_face_verified: boolean
   avatar_url: string | null
+  last_login_at: Date | null
   created_at?: Date
   updated_at?: Date
 }
 
-// id, timestamps are auto-generated
+// id, timestamps, and optional fields are auto-generated
 type UserCreationAttributes = Optional<
   UserAttributes,
   | 'id'
@@ -28,8 +28,8 @@ type UserCreationAttributes = Optional<
   | 'is_email_verified'
   | 'is_phone_verified'
   | 'is_fayda_verified'
-  | 'is_face_verified'
   | 'avatar_url'
+  | 'last_login_at'
   | 'email'
   | 'phone'
   | 'created_at'
@@ -47,8 +47,8 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
   declare is_email_verified: boolean
   declare is_phone_verified: boolean
   declare is_fayda_verified: boolean
-  declare is_face_verified: boolean
   declare avatar_url: string | null
+  declare last_login_at: Date | null
   declare readonly created_at: Date
   declare readonly updated_at: Date
 
@@ -64,8 +64,8 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
       isEmailVerified: this.is_email_verified,
       isPhoneVerified: this.is_phone_verified,
       isFaydaVerified: this.is_fayda_verified,
-      isFaceVerified: this.is_face_verified,
       avatarUrl: this.avatar_url,
+      lastLoginAt: this.last_login_at,
       createdAt: this.created_at,
     }
   }
@@ -122,13 +122,13 @@ User.init(
       allowNull: false,
       defaultValue: false,
     },
-    is_face_verified: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
-    },
     avatar_url: {
       type: DataTypes.STRING(2048),
+      allowNull: true,
+      defaultValue: null,
+    },
+    last_login_at: {
+      type: DataTypes.DATE,
       allowNull: true,
       defaultValue: null,
     },

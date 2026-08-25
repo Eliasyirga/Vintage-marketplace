@@ -186,7 +186,7 @@ export default function ListingDetailsPage() {
     <div className="min-h-screen bg-stone-50 text-stone-900 flex flex-col justify-between selection:bg-amber-500 selection:text-white">
       <Navbar />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-10">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 pb-28 sm:pb-10 space-y-6 sm:space-y-10">
         {/* Navigation & Action Bar */}
         <div className="flex items-center justify-between gap-4">
           <button
@@ -333,8 +333,8 @@ export default function ListingDetailsPage() {
               </div>
 
               <div className="space-y-2">
-                <h1 className="text-2xl font-extrabold text-stone-900 leading-snug">{listing.title}</h1>
-                <div className="text-3xl font-black text-amber-600 tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-extrabold text-stone-900 leading-snug">{listing.title}</h1>
+                <div className="text-2xl sm:text-3xl font-black text-amber-600 tracking-tight">
                   {formattedPrice} <span className="text-sm font-semibold text-stone-500">ETB</span>
                 </div>
               </div>
@@ -477,12 +477,6 @@ export default function ListingDetailsPage() {
                   <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 px-3 py-1 rounded-full">
                     <ShieldCheck className="w-3.5 h-3.5" />
                     Fayda Verified
-                  </span>
-                )}
-                {listing.seller.isFaceVerified && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    Face Verified
                   </span>
                 )}
               </div>

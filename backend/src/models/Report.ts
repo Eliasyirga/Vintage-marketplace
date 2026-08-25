@@ -1,7 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize'
 import { sequelize } from '../config/database'
 
-export type ReportTargetType = 'LISTING' | 'USER' | 'REVIEW' | 'MESSAGE'
+export type ReportTargetType = 'LISTING' | 'USER' | 'REVIEW' | 'MESSAGE' | 'CONVERSATION'
 export type ReportStatus = 'PENDING' | 'UNDER_REVIEW' | 'RESOLVED' | 'DISMISSED'
 export type ReportPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
 
@@ -83,7 +83,7 @@ Report.init(
       onUpdate: 'CASCADE',
     },
     target_type: {
-      type: DataTypes.ENUM('LISTING', 'USER', 'REVIEW', 'MESSAGE'),
+      type: DataTypes.ENUM('LISTING', 'USER', 'REVIEW', 'MESSAGE', 'CONVERSATION'),
       allowNull: false,
     },
     target_id: {

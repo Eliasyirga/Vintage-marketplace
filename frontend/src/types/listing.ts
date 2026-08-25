@@ -27,7 +27,6 @@ export interface SafeSeller {
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
   isFaydaVerified: boolean;
-  isFaceVerified: boolean;
 }
 
 export interface SafeListingImage {

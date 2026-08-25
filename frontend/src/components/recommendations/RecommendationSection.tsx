@@ -31,8 +31,8 @@ interface RecommendationSectionProps {
 /** Skeleton card for loading state */
 function SkeletonCard() {
   return (
-    <div className="flex-shrink-0 w-56 sm:w-64 rounded-2xl overflow-hidden border border-stone-200 bg-white animate-pulse">
-      <div className="h-40 bg-stone-100" />
+    <div className="flex-shrink-0 w-44 sm:w-64 rounded-2xl overflow-hidden border border-stone-200 bg-white animate-pulse">
+      <div className="aspect-[4/3] bg-stone-100" />
       <div className="p-3 space-y-2">
         <div className="h-3 bg-stone-100 rounded-full w-3/4" />
         <div className="h-3 bg-stone-100 rounded-full w-1/2" />
@@ -110,7 +110,7 @@ export function RecommendationSection({
       {/* Scrollable card row */}
       <div
         ref={scrollRef}
-        className="flex gap-4 overflow-x-auto pb-3 scroll-smooth snap-x snap-mandatory"
+        className="flex gap-2.5 sm:gap-4 overflow-x-auto pb-3 scroll-smooth snap-x snap-mandatory"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {isLoading
@@ -119,7 +119,7 @@ export function RecommendationSection({
           : displayItems.map(({ listing, reason }) => (
               <div
                 key={listing.id}
-                className="flex-shrink-0 w-56 sm:w-64 snap-start"
+                className="flex-shrink-0 w-44 sm:w-64 snap-start"
                 onClick={() => handleCardClick(listing.id)}
               >
                 {/* Reason badge above the card */}

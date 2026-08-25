@@ -9,8 +9,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import * as paymentService from '../../services/payment.service'
-import Navbar from '../../components/layout/Navbar'
-import Footer from '../../components/layout/Footer'
+import { WorkspaceHeader } from '../../components/layout/WorkspaceHeader'
 
 export default function MockCheckoutPage() {
   const [searchParams] = useSearchParams()
@@ -49,7 +48,11 @@ export default function MockCheckoutPage() {
 
   return (
     <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col justify-between">
-      <Navbar />
+      <WorkspaceHeader
+        title="Payment Gateway Sandbox"
+        backUrl="/seller/monetization"
+        backLabel="Monetization"
+      />
 
       <main className="flex-1 max-w-xl w-full mx-auto px-4 py-12 flex flex-col justify-center">
         {/* Sandbox Dev Banner */}
@@ -202,8 +205,6 @@ export default function MockCheckoutPage() {
           )}
         </div>
       </main>
-
-      <Footer />
     </div>
   )
 }

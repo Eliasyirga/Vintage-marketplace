@@ -63,6 +63,37 @@ export const env = {
   UPLOAD_DIR: optional('UPLOAD_DIR', 'uploads'),
   MAX_IMAGE_SIZE_BYTES: parseInt(optional('MAX_IMAGE_SIZE_MB', '5'), 10) * 1024 * 1024,
 
+  // Cloudinary (image CDN)
+  CLOUDINARY_URL: optional('CLOUDINARY_URL', ''),
+  CLOUDINARY_CLOUD_NAME: optional('CLOUDINARY_CLOUD_NAME', ''),
+  CLOUDINARY_API_KEY: optional('CLOUDINARY_API_KEY', ''),
+  CLOUDINARY_API_SECRET: optional('CLOUDINARY_API_SECRET', ''),
+  get CLOUDINARY_ENABLED() {
+    return !!(
+      process.env['CLOUDINARY_URL'] ||
+      (process.env['CLOUDINARY_CLOUD_NAME'] &&
+        process.env['CLOUDINARY_API_KEY'] &&
+        process.env['CLOUDINARY_API_SECRET'])
+    )
+  },
+
   get isProduction() { return this.NODE_ENV === 'production' },
   get isDevelopment() { return this.NODE_ENV === 'development' },
+
+  // ── Fayda / eSignet OIDC (Ethiopian National ID) ──────────────────────────
+  // Set FAYDA_SANDBOX_MODE=true to simulate the OIDC flow without real credentials.
+  // In production, obtain credentials from the Fayda partner enrollment program.
+  get FAYDA_SANDBOX_MODE() {
+    return (process.env['FAYDA_SANDBOX_MODE'] ?? 'true') === 'true'
+  },
+  FAYDA_CLIENT_ID: optional('FAYDA_CLIENT_ID', ''),
+  FAYDA_CLIENT_SECRET: optional('FAYDA_CLIENT_SECRET', ''),
+  FAYDA_REDIRECT_URI: optional('FAYDA_REDIRECT_URI', 'http://localhost:5000/api/verifications/fayda/callback'),
+  FAYDA_AUTHORIZATION_URL: optional('FAYDA_AUTHORIZATION_URL', 'https://esignet.ida.et/authorize'),
+  FAYDA_TOKEN_URL: optional('FAYDA_TOKEN_URL', 'https://esignet.ida.et/v1/esignet/oauth/token'),
+  FAYDA_JWKS_URL: optional('FAYDA_JWKS_URL', 'https://esignet.ida.et/v1/esignet/oauth/.well-known/jwks.json'),
+  get FAYDA_ENABLED() {
+    return !!(process.env['FAYDA_SANDBOX_MODE'] === 'true' ||
+      (process.env['FAYDA_CLIENT_ID'] && process.env['FAYDA_CLIENT_SECRET']))
+  },
 }

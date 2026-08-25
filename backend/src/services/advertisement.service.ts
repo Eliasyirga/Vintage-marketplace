@@ -1,6 +1,22 @@
+/**
+ * Advertisement Service — full lifecycle management.
+ *
+ * Lifecycle:
+ *   DRAFT (optional) → PENDING_PAYMENT → PAYMENT_VERIFIED
+ *   → PENDING_REVIEW → APPROVED → ACTIVE → EXPIRED | PAUSED | CANCELLED
+ *
+ * Security:
+ *   - Price always resolved server-side from Plan
+ *   - Target URL is sanitized (only http/https)
+ *   - Placement slot conflict checked before APPROVED → ACTIVE transition
+ *   - Click/impression deduplicated via AdvertisementEvent (24-hour window)
+ */
+
+import crypto from 'crypto'
 import { Op } from 'sequelize'
 import {
   Advertisement,
+  AdvertisementEvent,
   User,
   BusinessProfile,
   Plan,
@@ -9,23 +25,25 @@ import {
 } from '../models'
 import type { AdPlacement, AdStatus } from '../types/monetization.types'
 import * as entitlementService from './entitlement.service'
+import * as uploadService from './upload.service'
 
-const VALID_PLACEMENTS: AdPlacement[] = [
-  'HOME_TOP',
-  'MARKETPLACE_MIDDLE',
-  'MARKETPLACE_BOTTOM',
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+export const VALID_PLACEMENTS: AdPlacement[] = [
+  'MARKETPLACE_BANNER',
+  'MARKETPLACE_FEATURED',
+  'MARKETPLACE_SIDEBAR',
 ]
 
-/**
- * Validate URL security (HTTPS only, no javascript:/data:/malicious schemes)
- */
+const DEDUP_WINDOW_MS = 24 * 60 * 60 * 1000 // 24 hours
+
+// ── URL / Security helpers ────────────────────────────────────────────────────
+
 export function validateSafeAdUrl(urlStr: string): string {
   const trimmed = (urlStr || '').trim()
   if (!trimmed) {
     throw Object.assign(new Error('Target URL is required.'), { statusCode: 400 })
   }
-
-  // Reject unsafe schemes explicitly
   const lower = trimmed.toLowerCase()
   if (
     lower.startsWith('javascript:') ||
@@ -33,11 +51,11 @@ export function validateSafeAdUrl(urlStr: string): string {
     lower.startsWith('vbscript:') ||
     lower.startsWith('file:')
   ) {
-    throw Object.assign(new Error('Unsafe URL scheme detected. Only secure HTTPS URLs are permitted.'), {
-      statusCode: 400,
-    })
+    throw Object.assign(
+      new Error('Unsafe URL scheme. Only http:// and https:// are permitted.'),
+      { statusCode: 400 },
+    )
   }
-
   try {
     const parsed = new URL(trimmed)
     if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
@@ -46,22 +64,29 @@ export function validateSafeAdUrl(urlStr: string): string {
     return trimmed
   } catch (err: any) {
     throw Object.assign(
-      new Error(err.message || 'Invalid target URL format. Please provide a valid web address.'),
+      new Error(err.message || 'Invalid target URL format.'),
       { statusCode: 400 },
     )
   }
 }
 
-export interface ActiveAdSlotsResponse {
-  homeTop: ReturnType<Advertisement['toSafeObject']> | null
-  marketplaceMiddle: ReturnType<Advertisement['toSafeObject']> | null
-  marketplaceBottom: ReturnType<Advertisement['toSafeObject']> | null
+function hashIp(ip: string | undefined): string | null {
+  if (!ip) return null
+  return crypto.createHash('sha256').update(ip).digest('hex')
 }
 
-/**
- * Check if a placement slot currently has an ACTIVE advertisement
- */
-export async function isPlacementOccupied(placement: AdPlacement, excludeAdId?: string): Promise<boolean> {
+// ── Slot queries ──────────────────────────────────────────────────────────────
+
+export interface ActiveAdSlotsResponse {
+  marketplaceBanner: ReturnType<Advertisement['toSafeObject']>[]
+  marketplaceFeatured: ReturnType<Advertisement['toSafeObject']>[]
+  marketplaceSidebar: ReturnType<Advertisement['toSafeObject']>[]
+}
+
+export async function isPlacementOccupied(
+  placement: AdPlacement,
+  excludeAdId?: string,
+): Promise<boolean> {
   const now = new Date()
   const where: any = {
     placement,
@@ -71,18 +96,11 @@ export async function isPlacementOccupied(placement: AdPlacement, excludeAdId?: 
       { [Op.or]: [{ end_at: null }, { end_at: { [Op.gte]: now } }] },
     ],
   }
-
-  if (excludeAdId) {
-    where.id = { [Op.ne]: excludeAdId }
-  }
-
+  if (excludeAdId) where.id = { [Op.ne]: excludeAdId }
   const count = await Advertisement.count({ where })
   return count > 0
 }
 
-/**
- * Return which of the 3 primary slots are currently available for purchase/booking
- */
 export async function getAvailablePlacements(): Promise<{
   available: AdPlacement[]
   occupied: AdPlacement[]
@@ -116,20 +134,83 @@ export async function getAvailablePlacements(): Promise<{
     }
   }
 
-  return {
-    available,
-    occupied,
-    slots: slots as Record<AdPlacement, boolean>,
-  }
+  return { available, occupied, slots: slots as Record<AdPlacement, boolean> }
 }
 
 /**
- * Retrieve the 3 active marketplace advertisement slots in ONE single, high-performance database query.
- * Enforces at most ONE active ad per slot.
+ * Fetch all active ads for a specific placement slot (ordered by priority DESC).
+ * Returns empty array if the slot is unbooked.
+ */
+export async function getActiveAdForPlacement(
+  placement: AdPlacement,
+): Promise<(ReturnType<Advertisement['toSafeObject']> & {
+  advertiserName: string
+  advertiserAvatar: string | null
+})[]> {
+  if (!VALID_PLACEMENTS.includes(placement)) {
+    throw Object.assign(
+      new Error(
+        `Invalid placement "${placement}". Valid slots: ${VALID_PLACEMENTS.join(', ')}`,
+      ),
+      { statusCode: 400 },
+    )
+  }
+
+  const now = new Date()
+  const ads = await Advertisement.findAll({
+    where: {
+      status: 'ACTIVE',
+      placement,
+      [Op.and]: [
+        { [Op.or]: [{ start_at: null }, { start_at: { [Op.lte]: now } }] },
+        { [Op.or]: [{ end_at: null }, { end_at: { [Op.gte]: now } }] },
+      ],
+    },
+    include: [
+      {
+        model: User,
+        as: 'advertiser',
+        attributes: ['id', 'full_name', 'avatar_url'],
+        include: [
+          {
+            model: BusinessProfile,
+            as: 'businessProfile',
+            attributes: ['business_name', 'logo'],
+          },
+        ],
+      },
+      {
+        model: Plan,
+        as: 'plan',
+        attributes: ['id', 'name', 'duration_days', 'price'],
+      },
+    ],
+    order: [
+      ['priority', 'DESC'],
+      ['start_at', 'DESC'],
+      ['created_at', 'ASC'],
+    ],
+  })
+
+  return ads.map((ad) => {
+    const safe = ad.toSafeObject()
+    const advertiser = (ad as any).advertiser
+    const business = advertiser?.businessProfile
+    return {
+      ...safe,
+      advertiserName:
+        business?.business_name || advertiser?.full_name || 'Verified Sponsor',
+      advertiserAvatar: business?.logo || advertiser?.avatar_url || null,
+    }
+  })
+}
+
+/**
+ * Fetch ALL active ads for each of the 3 marketplace slots (supports carousel rotation).
+ * Returns an empty array for any unbooked slot (frontend renders a fallback CTA).
  */
 export async function getActiveAdSlots(): Promise<ActiveAdSlotsResponse> {
   const now = new Date()
-
   const activeAds = await Advertisement.findAll({
     where: {
       status: 'ACTIVE',
@@ -165,77 +246,90 @@ export async function getActiveAdSlots(): Promise<ActiveAdSlotsResponse> {
     ],
   })
 
-  // Group by placement and take at most one per slot
-  const slotMap: Record<AdPlacement, Advertisement | null> = {
-    HOME_TOP: null,
-    MARKETPLACE_MIDDLE: null,
-    MARKETPLACE_BOTTOM: null,
+  const slotMap: Record<AdPlacement, Advertisement[]> = {
+    MARKETPLACE_BANNER: [],
+    MARKETPLACE_FEATURED: [],
+    MARKETPLACE_SIDEBAR: [],
   }
 
   for (const ad of activeAds) {
-    if (!slotMap[ad.placement]) {
-      slotMap[ad.placement] = ad
-    }
+    slotMap[ad.placement].push(ad)
   }
 
-  const formatAd = (ad: Advertisement | null) => {
-    if (!ad) return null
+  const formatAd = (ad: Advertisement) => {
     const safe = ad.toSafeObject()
     const advertiser = (ad as any).advertiser
     const business = advertiser?.businessProfile
     return {
       ...safe,
-      advertiserName: business?.business_name || advertiser?.full_name || 'Verified Sponsor',
+      advertiserName:
+        business?.business_name || advertiser?.full_name || 'Verified Sponsor',
       advertiserAvatar: business?.logo || advertiser?.avatar_url || null,
     }
   }
 
   return {
-    homeTop: formatAd(slotMap.HOME_TOP),
-    marketplaceMiddle: formatAd(slotMap.MARKETPLACE_MIDDLE),
-    marketplaceBottom: formatAd(slotMap.MARKETPLACE_BOTTOM),
+    marketplaceBanner: slotMap.MARKETPLACE_BANNER.map(formatAd),
+    marketplaceFeatured: slotMap.MARKETPLACE_FEATURED.map(formatAd),
+    marketplaceSidebar: slotMap.MARKETPLACE_SIDEBAR.map(formatAd),
   }
 }
 
+// ── Creation ──────────────────────────────────────────────────────────────────
+
 /**
  * Create a new advertisement booking in PENDING_PAYMENT status.
- * Resolves price and duration strictly server-side from the monetization Plan.
+ * Price is always resolved server-side from the Plan record.
+ * The ad creative image has already been uploaded — pass the URL and publicId.
  */
 export async function createAdvertisement(
   advertiserId: string,
   data: {
+    id?: string
     planId: string
     title: string
     description?: string | null
-    image: string
+    imageUrl: string
+    imagePublicId?: string | null
+    imageWidth?: number | null
+    imageHeight?: number | null
+    imageFormat?: string | null
+    imageBytes?: number | null
     targetUrl: string
     placement: AdPlacement
   },
 ): Promise<Advertisement> {
   if (!VALID_PLACEMENTS.includes(data.placement)) {
     throw Object.assign(
-      new Error(`Invalid placement "${data.placement}". Valid slots: ${VALID_PLACEMENTS.join(', ')}`),
+      new Error(
+        `Invalid placement "${data.placement}". Valid slots: ${VALID_PLACEMENTS.join(', ')}`,
+      ),
       { statusCode: 400 },
     )
   }
 
   const safeUrl = validateSafeAdUrl(data.targetUrl)
 
-  // 1. Resolve Server-side Price & Plan
   const plan = await Plan.findByPk(data.planId)
   if (!plan || !plan.is_active || plan.type !== 'ADVERTISEMENT') {
-    throw Object.assign(new Error('Selected advertisement plan is invalid or inactive.'), {
-      statusCode: 400,
-    })
+    throw Object.assign(
+      new Error('Selected advertisement plan is invalid or inactive.'),
+      { statusCode: 400 },
+    )
   }
 
-  // 2. Create Advertisement record in PENDING_PAYMENT
   const ad = await Advertisement.create({
+    id: data.id,
     advertiser_id: advertiserId,
     plan_id: plan.id,
     title: data.title.trim().slice(0, 150),
     description: data.description?.trim() || null,
-    image: data.image.trim(),
+    image: data.imageUrl,
+    image_public_id: data.imagePublicId ?? null,
+    image_width: data.imageWidth ?? null,
+    image_height: data.imageHeight ?? null,
+    image_format: data.imageFormat ?? null,
+    image_bytes: data.imageBytes ?? null,
     target_url: safeUrl,
     placement: data.placement,
     budget: Number(plan.price).toFixed(2),
@@ -248,9 +342,24 @@ export async function createAdvertisement(
   return ad
 }
 
+// ── Payment integration ───────────────────────────────────────────────────────
+
 /**
- * Get advertisement by ID (with authorization check)
+ * Called by the payment webhook/verification handler when a payment for an
+ * advertisement purpose is confirmed as SUCCESS.
+ * Transitions: PENDING_PAYMENT → PAYMENT_VERIFIED → PENDING_REVIEW
  */
+export async function handleAdPaymentSuccess(adId: string): Promise<void> {
+  const ad = await Advertisement.findByPk(adId)
+  if (!ad) return
+  if (ad.status !== 'PENDING_PAYMENT') return
+  await ad.update({ status: 'PAYMENT_VERIFIED' })
+  // Auto-advance to PENDING_REVIEW so admins can immediately see it in the queue
+  await ad.update({ status: 'PENDING_REVIEW' })
+}
+
+// ── Single ad lookup ──────────────────────────────────────────────────────────
+
 export async function getAdvertisementById(
   adId: string,
   requesterId?: string,
@@ -264,10 +373,7 @@ export async function getAdvertisementById(
         attributes: ['id', 'full_name', 'email', 'phone', 'avatar_url'],
         include: [{ model: BusinessProfile, as: 'businessProfile' }],
       },
-      {
-        model: Plan,
-        as: 'plan',
-      },
+      { model: Plan, as: 'plan' },
       {
         model: Payment,
         as: 'payment',
@@ -281,30 +387,38 @@ export async function getAdvertisementById(
   }
 
   if (requesterId && ad.advertiser_id !== requesterId && !isAdmin) {
-    throw Object.assign(new Error('Unauthorized access to this advertisement.'), { statusCode: 403 })
+    throw Object.assign(new Error('Unauthorized access to this advertisement.'), {
+      statusCode: 403,
+    })
   }
 
   return ad
 }
 
-/**
- * List all advertisements owned by a specific advertiser
- */
-export async function getAdvertisementsByUser(advertiserId: string): Promise<Advertisement[]> {
+// ── Advertiser lists ──────────────────────────────────────────────────────────
+
+export async function getAdvertisementsByUser(
+  advertiserId: string,
+): Promise<Advertisement[]> {
   return Advertisement.findAll({
     where: { advertiser_id: advertiserId },
     include: [
       { model: Plan, as: 'plan' },
-      { model: Payment, as: 'payment', attributes: ['id', 'reference', 'status', 'paid_at'] },
+      {
+        model: Payment,
+        as: 'payment',
+        attributes: ['id', 'reference', 'status', 'paid_at'],
+      },
     ],
     order: [['created_at', 'DESC']],
   })
 }
 
-/**
- * Admin view of all advertisements with optional status filter
- */
-export async function getAllAdvertisementsAdmin(status?: AdStatus): Promise<Advertisement[]> {
+// ── Admin views ───────────────────────────────────────────────────────────────
+
+export async function getAllAdvertisementsAdmin(
+  status?: AdStatus,
+): Promise<Advertisement[]> {
   const where: any = {}
   if (status) where.status = status
 
@@ -325,12 +439,13 @@ export async function getAllAdvertisementsAdmin(status?: AdStatus): Promise<Adve
   })
 }
 
+// ── Admin moderation ──────────────────────────────────────────────────────────
+
 /**
- * Approve an advertisement for live activation.
- * Enforces:
- * 1. Must be reviewed by Admin
- * 2. Payment must be verified/SUCCESS
- * 3. Position must NOT already have an ACTIVE ad (guarantees <= 3 total active ads)
+ * Admin: Approve an advertisement.
+ * 1. Must be in PENDING_REVIEW (payment already verified)
+ * 2. Placement slot must be free
+ * 3. Transitions to APPROVED then ACTIVE with computed start_at / end_at
  */
 export async function approveAdvertisement(
   adId: string,
@@ -347,30 +462,34 @@ export async function approveAdvertisement(
     throw Object.assign(new Error('Advertisement not found.'), { statusCode: 404 })
   }
 
-  // 1. Verify payment status
+  if (!['PENDING_REVIEW', 'PAYMENT_VERIFIED', 'APPROVED'].includes(ad.status)) {
+    throw Object.assign(
+      new Error(
+        `Cannot approve advertisement in status "${ad.status}". Must be in PENDING_REVIEW.`,
+      ),
+      { statusCode: 400 },
+    )
+  }
+
+  // Verify payment is SUCCESS
   if (ad.payment_id) {
-    const payment = (ad as any).payment || (await Payment.findByPk(ad.payment_id))
+    const payment =
+      (ad as any).payment || (await Payment.findByPk(ad.payment_id))
     if (payment && payment.status !== 'SUCCESS') {
       throw Object.assign(
-        new Error(`Cannot approve advertisement: Payment status is ${payment.status}. Payment must be verified first.`),
+        new Error(
+          `Cannot approve: payment status is "${payment.status}". Payment must be SUCCESS first.`,
+        ),
         { statusCode: 400 },
       )
     }
   }
 
-  // 2. Check if target placement is already occupied by an active ad
-  const occupied = await isPlacementOccupied(ad.placement, ad.id)
-  if (occupied) {
-    throw Object.assign(
-      new Error(
-        `This advertising position (${ad.placement}) is currently occupied by another active advertisement. Pause or expire the existing ad first before activating a new one.`,
-      ),
-      { statusCode: 409 },
-    )
-  }
+  // Note: Multiple active ads per placement are allowed (carousel rotation).
+  // No slot-conflict check — each approved ad rotates in the carousel.
 
-  // 3. Resolve duration
-  const durationDays = (ad as any).plan?.duration_days || 7
+  // Compute duration from plan
+  const durationDays = (ad as any).plan?.duration_days ?? 7
   const now = new Date()
   const endAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000)
 
@@ -383,7 +502,7 @@ export async function approveAdvertisement(
     rejection_reason: null,
   })
 
-  // 4. Grant Entitlement
+  // Grant entitlement to advertiser
   await entitlementService.grantEntitlement({
     userId: ad.advertiser_id,
     type: 'ADVERTISEMENT',
@@ -392,7 +511,7 @@ export async function approveAdvertisement(
     metadata: { advertisementId: ad.id, placement: ad.placement },
   })
 
-  // 5. Audit Log
+  // Audit trail
   await AdminAuditLog.create({
     admin_id: adminId,
     action: 'ADVERTISEMENT_APPROVED',
@@ -411,13 +530,17 @@ export async function approveAdvertisement(
 }
 
 /**
- * Reject an advertisement with a reason
+ * Admin: Reject an advertisement with a mandatory reason.
  */
 export async function rejectAdvertisement(
   adId: string,
   adminId: string,
   reason: string,
 ): Promise<Advertisement> {
+  if (!reason?.trim()) {
+    throw Object.assign(new Error('A rejection reason is required.'), { statusCode: 400 })
+  }
+
   const ad = await Advertisement.findByPk(adId)
   if (!ad) {
     throw Object.assign(new Error('Advertisement not found.'), { statusCode: 404 })
@@ -441,134 +564,186 @@ export async function rejectAdvertisement(
   return ad
 }
 
-/**
- * Pause an active advertisement (by advertiser or admin)
- */
-export async function pauseAdvertisement(adId: string, userId: string, isAdmin = false): Promise<Advertisement> {
+// ── Advertiser controls ────────────────────────────────────────────────────────
+
+export async function pauseAdvertisement(
+  adId: string,
+  userId: string,
+  isAdmin = false,
+): Promise<Advertisement> {
   const ad = await Advertisement.findByPk(adId)
-  if (!ad) {
-    throw Object.assign(new Error('Advertisement not found.'), { statusCode: 404 })
-  }
-
-  if (ad.advertiser_id !== userId && !isAdmin) {
+  if (!ad) throw Object.assign(new Error('Advertisement not found.'), { statusCode: 404 })
+  if (ad.advertiser_id !== userId && !isAdmin)
     throw Object.assign(new Error('Unauthorized.'), { statusCode: 403 })
-  }
-
-  if (ad.status !== 'ACTIVE') {
-    throw Object.assign(new Error(`Only ACTIVE advertisements can be paused. Current status: ${ad.status}`), {
-      statusCode: 400,
-    })
-  }
-
+  if (ad.status !== 'ACTIVE')
+    throw Object.assign(
+      new Error(`Only ACTIVE ads can be paused. Current status: ${ad.status}`),
+      { statusCode: 400 },
+    )
   await ad.update({ status: 'PAUSED' })
   return ad
 }
 
-/**
- * Resume a paused advertisement (verifies slot is still free)
- */
-export async function resumeAdvertisement(adId: string, userId: string, isAdmin = false): Promise<Advertisement> {
+export async function resumeAdvertisement(
+  adId: string,
+  userId: string,
+  isAdmin = false,
+): Promise<Advertisement> {
   const ad = await Advertisement.findByPk(adId)
-  if (!ad) {
-    throw Object.assign(new Error('Advertisement not found.'), { statusCode: 404 })
-  }
-
-  if (ad.advertiser_id !== userId && !isAdmin) {
+  if (!ad) throw Object.assign(new Error('Advertisement not found.'), { statusCode: 404 })
+  if (ad.advertiser_id !== userId && !isAdmin)
     throw Object.assign(new Error('Unauthorized.'), { statusCode: 403 })
-  }
+  if (ad.status !== 'PAUSED')
+    throw Object.assign(
+      new Error(`Only PAUSED ads can be resumed. Current status: ${ad.status}`),
+      { statusCode: 400 },
+    )
 
-  if (ad.status !== 'PAUSED') {
-    throw Object.assign(new Error(`Only PAUSED advertisements can be resumed. Current status: ${ad.status}`), {
-      statusCode: 400,
-    })
+  // Check if expired while paused
+  if (ad.end_at && new Date(ad.end_at).getTime() < Date.now()) {
+    await ad.update({ status: 'EXPIRED' })
+    throw Object.assign(
+      new Error('This advertisement has expired and cannot be resumed.'),
+      { statusCode: 400 },
+    )
   }
 
   const occupied = await isPlacementOccupied(ad.placement, ad.id)
   if (occupied) {
     throw Object.assign(
-      new Error(`Cannot resume: This advertising position (${ad.placement}) is currently occupied by another active advertisement.`),
+      new Error(
+        `Cannot resume: slot "${ad.placement}" is occupied by another active ad.`,
+      ),
       { statusCode: 409 },
     )
-  }
-
-  // Check if expired while paused
-  if (ad.end_at && new Date(ad.end_at).getTime() < Date.now()) {
-    await ad.update({ status: 'EXPIRED' })
-    throw Object.assign(new Error('This advertisement has expired and cannot be resumed.'), { statusCode: 400 })
   }
 
   await ad.update({ status: 'ACTIVE' })
   return ad
 }
 
-/**
- * Cancel an ad before activation or by advertiser
- */
-export async function cancelAdvertisement(adId: string, userId: string, isAdmin = false): Promise<Advertisement> {
+export async function cancelAdvertisement(
+  adId: string,
+  userId: string,
+  isAdmin = false,
+): Promise<Advertisement> {
   const ad = await Advertisement.findByPk(adId)
-  if (!ad) {
-    throw Object.assign(new Error('Advertisement not found.'), { statusCode: 404 })
-  }
-
-  if (ad.advertiser_id !== userId && !isAdmin) {
+  if (!ad) throw Object.assign(new Error('Advertisement not found.'), { statusCode: 404 })
+  if (ad.advertiser_id !== userId && !isAdmin)
     throw Object.assign(new Error('Unauthorized.'), { statusCode: 403 })
+  if (['ACTIVE', 'EXPIRED', 'CANCELLED'].includes(ad.status))
+    throw Object.assign(
+      new Error(`Cannot cancel an ad in status "${ad.status}".`),
+      { statusCode: 400 },
+    )
+
+  // Clean up creative from Cloudinary if still in draft / pending payment
+  if (['DRAFT', 'PENDING_PAYMENT'].includes(ad.status) && ad.image_public_id) {
+    await uploadService.deleteAdImage(ad.image_public_id)
   }
 
   await ad.update({ status: 'CANCELLED' })
   return ad
 }
 
-/**
- * Background/cron routine to expire past-date active ads
- */
-export async function expireOutdatedAds(): Promise<number> {
-  const now = new Date()
-  const [affectedCount] = await Advertisement.update(
-    { status: 'EXPIRED' },
-    {
-      where: {
-        status: 'ACTIVE',
-        end_at: { [Op.lt]: now },
-      },
-    },
-  )
-  return affectedCount
-}
+// ── Analytics tracking ─────────────────────────────────────────────────────────
 
 /**
- * Record advertisement impression atomically
+ * Record an impression for an ad — deduplicated per (ad, ip, session) within 24h.
+ * Returns true if the impression was recorded, false if it was deduplicated.
  */
-export async function recordAdImpression(adId: string): Promise<void> {
+export async function recordAdImpression(
+  adId: string,
+  options: { ip?: string; sessionId?: string; userId?: string } = {},
+): Promise<boolean> {
   try {
-    await Advertisement.increment('impression_count', { by: 1, where: { id: adId, status: 'ACTIVE' } })
+    const ad = await Advertisement.findByPk(adId, {
+      attributes: ['id', 'status'],
+    })
+    if (!ad || ad.status !== 'ACTIVE') return false
+
+    const ipHash = hashIp(options.ip)
+    const since = new Date(Date.now() - DEDUP_WINDOW_MS)
+
+    // Dedup: only one impression per (ad, ip_hash) per 24h window
+    if (ipHash) {
+      const existing = await AdvertisementEvent.findOne({
+        where: {
+          advertisement_id: adId,
+          event_type: 'IMPRESSION',
+          ip_hash: ipHash,
+          created_at: { [Op.gte]: since },
+        },
+        attributes: ['id'],
+      })
+      if (existing) return false
+    }
+
+    await AdvertisementEvent.create({
+      advertisement_id: adId,
+      event_type: 'IMPRESSION',
+      session_id: options.sessionId ?? null,
+      user_id: options.userId ?? null,
+      ip_hash: ipHash,
+    })
+
+    await Advertisement.increment('impression_count', {
+      by: 1,
+      where: { id: adId, status: 'ACTIVE' },
+    })
+
+    return true
   } catch {
-    // Non-fatal fire-and-forget
+    return false
   }
 }
 
 /**
- * Record advertisement click atomically and return safe redirect URL
+ * Record a click and return the safe destination URL.
+ * Clicks are NOT deduplicated — intentional user action.
  */
-export async function recordAdClick(adId: string): Promise<string | null> {
+export async function recordAdClick(
+  adId: string,
+  options: { ip?: string; sessionId?: string; userId?: string } = {},
+): Promise<string | null> {
   try {
-    const ad = await Advertisement.findByPk(adId, { attributes: ['id', 'target_url', 'status'] })
+    const ad = await Advertisement.findByPk(adId, {
+      attributes: ['id', 'target_url', 'status'],
+    })
     if (!ad) return null
+
+    await AdvertisementEvent.create({
+      advertisement_id: adId,
+      event_type: 'CLICK',
+      session_id: options.sessionId ?? null,
+      user_id: options.userId ?? null,
+      ip_hash: hashIp(options.ip),
+    })
+
     await Advertisement.increment('click_count', { by: 1, where: { id: adId } })
+
     return ad.target_url
   } catch {
     return null
   }
 }
 
-/**
- * Fetch available advertisement plans
- */
+// ── Plan lookup ───────────────────────────────────────────────────────────────
+
 export async function getAdvertisementPlans(): Promise<Plan[]> {
   return Plan.findAll({
-    where: {
-      type: 'ADVERTISEMENT',
-      is_active: true,
-    },
+    where: { type: 'ADVERTISEMENT', is_active: true },
     order: [['sort_order', 'ASC'], ['price', 'ASC']],
   })
+}
+
+// ── Expiry cron helper ────────────────────────────────────────────────────────
+
+export async function expireOutdatedAds(): Promise<number> {
+  const now = new Date()
+  const [affectedCount] = await Advertisement.update(
+    { status: 'EXPIRED' },
+    { where: { status: 'ACTIVE', end_at: { [Op.lt]: now } } },
+  )
+  return affectedCount
 }

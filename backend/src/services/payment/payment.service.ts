@@ -30,7 +30,7 @@ export interface CreatePaymentInput {
   advertisementId?: string
   transactionId?: string
   orderId?: string
-  verificationType?: 'NATIONAL_ID' | 'FACE' | 'BUSINESS'
+  verificationType?: 'NATIONAL_ID' | 'BUSINESS'
   returnUrl?: string
   callbackUrl?: string
 }
@@ -86,6 +86,12 @@ export async function createPayment(
     }
     if (ad.advertiser_id !== userId && user.role !== 'ADMIN') {
       throw Object.assign(new Error('Unauthorized advertisement access.'), { statusCode: 403 })
+    }
+    if (ad.status !== 'PENDING_PAYMENT') {
+      throw Object.assign(
+        new Error(`Advertisement is in status "${ad.status}" and cannot accept payment.`),
+        { statusCode: 400 },
+      )
     }
     amount = Number(ad.budget)
   }
@@ -147,6 +153,14 @@ export async function createPayment(
     status: 'PENDING',
     metadata,
   })
+
+  // Link payment to advertisement record immediately
+  if (input.advertisementId) {
+    await Advertisement.update(
+      { payment_id: payment.id },
+      { where: { id: input.advertisementId } },
+    )
+  }
 
   // 5. Initialize with Payment Provider
   const provider = getPaymentProvider(input.provider)

@@ -61,10 +61,10 @@ export function FeaturedSection() {
       </div>
 
       {/* Product Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 relative z-10">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5 sm:gap-4 relative z-10">
         {listings.map((item) => (
           <div key={item.id} className="relative group">
-            <div className="absolute top-2 left-2 z-20 bg-amber-500 text-stone-950 text-[10px] font-extrabold px-2 py-0.5 rounded-md shadow-md flex items-center gap-1 pointer-events-none">
+            <div className="absolute top-2 left-2 z-20 bg-amber-500 text-stone-950 text-[9px] sm:text-[10px] font-extrabold px-1.5 sm:px-2 py-0.5 rounded-md shadow-md flex items-center gap-1 pointer-events-none">
               <Sparkles className="w-2.5 h-2.5" />
               <span>FEATURED</span>
             </div>

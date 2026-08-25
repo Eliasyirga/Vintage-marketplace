@@ -1,1 +1,210 @@
 @import "tailwindcss";
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d6d3d1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a29e;
+}
+
+/* Hero Animations */
+@keyframes hero-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes hero-float-delayed {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(-2deg);
+  }
+}
+
+@keyframes hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes hero-pulse-glow {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.05);
+  }
+}
+
+.hero-float {
+  animation: hero-float 5s ease-in-out infinite;
+}
+
+.hero-float-delayed {
+  animation: hero-float-delayed 6.5s ease-in-out infinite;
+}
+
+.hero-fade-up {
+  animation: hero-fade-up 0.7s ease-out both;
+}
+
+.hero-fade-up-delay-1 {
+  animation: hero-fade-up 0.7s ease-out 0.1s both;
+}
+
+.hero-fade-up-delay-2 {
+  animation: hero-fade-up 0.7s ease-out 0.2s both;
+}
+
+.hero-fade-up-delay-3 {
+  animation: hero-fade-up 0.7s ease-out 0.3s both;
+}
+
+.hero-fade-up-delay-4 {
+  animation: hero-fade-up 0.7s ease-out 0.4s both;
+}
+
+.hero-fade-up-delay-5 {
+  animation: hero-fade-up 0.7s ease-out 0.5s both;
+}
+
+.hero-shimmer-text {
+  background-size: 200% auto;
+  animation: hero-shimmer 4s linear infinite;
+}
+
+.hero-glow-orb {
+  animation: hero-pulse-glow 8s ease-in-out infinite;
+}
+
+/* Startup & Splash Screen Animations */
+@keyframes splash-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes splash-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes splash-dot-pulse {
+  0%, 100% {
+    opacity: 0.25;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes splash-ambient-glow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.15);
+  }
+}
+
+.splash-scale-in {
+  animation: splash-scale-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.splash-fade-up-1 {
+  animation: splash-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
+}
+
+.splash-fade-up-2 {
+  animation: splash-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.24s both;
+}
+
+.splash-fade-up-3 {
+  animation: splash-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.36s both;
+}
+
+.splash-dot-1 {
+  animation: splash-dot-pulse 1.2s ease-in-out infinite;
+}
+
+.splash-dot-2 {
+  animation: splash-dot-pulse 1.2s ease-in-out 0.2s infinite;
+}
+
+.splash-dot-3 {
+  animation: splash-dot-pulse 1.2s ease-in-out 0.4s infinite;
+}
+
+.splash-ambient-glow {
+  animation: splash-ambient-glow 4s ease-in-out infinite;
+}

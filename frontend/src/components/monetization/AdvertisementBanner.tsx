@@ -2,18 +2,23 @@ import { AdvertisementSlot } from '../advertisements/AdvertisementSlot'
 import type { AdPlacement } from '../../types/monetization'
 
 interface AdvertisementBannerProps {
-  placement?: AdPlacement | 'HOME_BANNER' | 'MARKETPLACE_BANNER' | 'CATEGORY_BANNER' | 'SIDEBAR'
+  placement?: AdPlacement | 'HOME_BANNER' | 'CATEGORY_BANNER' | 'SIDEBAR'
   className?: string
 }
 
-export function AdvertisementBanner({ placement = 'HOME_TOP', className = '' }: AdvertisementBannerProps) {
-  // Map old placement names gracefully to new 3-slot system
+export function AdvertisementBanner({
+  placement = 'MARKETPLACE_BANNER',
+  className = '',
+}: AdvertisementBannerProps) {
+  // Map legacy placement names gracefully to the 3-slot system
   const mappedPlacement: AdPlacement =
-    placement === 'MARKETPLACE_BANNER'
-      ? 'MARKETPLACE_MIDDLE'
-      : placement === 'CATEGORY_BANNER' || placement === 'SIDEBAR'
-      ? 'MARKETPLACE_BOTTOM'
-      : (placement as AdPlacement) || 'HOME_TOP'
+    placement === 'HOME_BANNER'
+      ? 'MARKETPLACE_BANNER'
+      : placement === 'CATEGORY_BANNER'
+      ? 'MARKETPLACE_FEATURED'
+      : placement === 'SIDEBAR'
+      ? 'MARKETPLACE_SIDEBAR'
+      : (placement as AdPlacement) || 'MARKETPLACE_BANNER'
 
   return <AdvertisementSlot placement={mappedPlacement} className={className} />
 }

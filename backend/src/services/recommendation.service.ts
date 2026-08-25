@@ -398,7 +398,6 @@ export async function getSimilarListings(
         'is_email_verified',
         'is_phone_verified',
         'is_fayda_verified',
-        'is_face_verified',
       ],
     },
     { model: ListingImage, as: 'images' },
