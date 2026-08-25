@@ -12,6 +12,19 @@ import * as paymentService from '../services/payment/payment.service'
 import * as uploadService from '../services/upload.service'
 import { MockPaymentProvider } from '../services/payment/MockPaymentProvider'
 
+function slotHasAd(
+  ads: Array<{ id: string }> | null | undefined,
+  adId: string,
+): boolean {
+  return Array.isArray(ads) && ads.some((a) => a.id === adId)
+}
+
+function slotFirstAd<T extends { id: string }>(
+  ads: T[] | null | undefined,
+): T | undefined {
+  return Array.isArray(ads) ? ads[0] : undefined
+}
+
 async function runAdsSuite() {
   console.log('🧪 Starting Comprehensive Advertisement System Test Suite...\n')
 
@@ -79,7 +92,7 @@ async function runAdsSuite() {
   })
   if (ad1.status !== 'PENDING_PAYMENT') throw new Error(`TEST 1 Failed: Expected status PENDING_PAYMENT, got ${ad1.status}`)
   const activeSlots1 = await adService.getActiveAdSlots()
-  if (activeSlots1.marketplaceBanner?.id === ad1.id) throw new Error('TEST 1 Failed: Unpaid ad appeared in active slots!')
+  if (slotHasAd(activeSlots1.marketplaceBanner, ad1.id)) throw new Error('TEST 1 Failed: Unpaid ad appeared in active slots!')
   console.log('✅ TEST 1 Passed: Ad created in PENDING_PAYMENT and invisible to public.\n')
 
   // TEST 2: Image metadata stored in database
@@ -92,7 +105,7 @@ async function runAdsSuite() {
   // TEST 3: Payment not completed -> ad does NOT appear publicly
   console.log('TEST 3: Payment not completed -> ad is invisible in all slots...')
   const placementCheck3 = await adService.getActiveAdForPlacement('MARKETPLACE_BANNER')
-  if (placementCheck3 !== null) throw new Error('TEST 3 Failed: Unpaid ad returned by getActiveAdForPlacement')
+  if (placementCheck3.length > 0) throw new Error('TEST 3 Failed: Unpaid ad returned by getActiveAdForPlacement')
   console.log('✅ TEST 3 Passed: Ad is not returned for placement.\n')
 
   // TEST 4: Payment initiated (PENDING) -> still not public
@@ -107,7 +120,7 @@ async function runAdsSuite() {
   const ad1Reloaded = await Advertisement.findByPk(ad1.id)
   if (ad1Reloaded?.payment_id !== payment1.id) throw new Error('TEST 4 Failed: Ad not linked to payment_id')
   const activeSlots4 = await adService.getActiveAdSlots()
-  if (activeSlots4.marketplaceBanner !== null) throw new Error('TEST 4 Failed: Pending-payment ad appeared publicly')
+  if (activeSlots4.marketplaceBanner.length > 0) throw new Error('TEST 4 Failed: Pending-payment ad appeared publicly')
   console.log('✅ TEST 4 Passed: Payment initiated, linked to ad, ad remains invisible.\n')
 
   // TEST 5: Payment verified -> ad transitions to PENDING_REVIEW
@@ -125,9 +138,9 @@ async function runAdsSuite() {
   if (approvedBanner.status !== 'ACTIVE') throw new Error(`TEST 6 Failed: Expected ad status ACTIVE, got ${approvedBanner.status}`)
   
   const slotsAfterApprove = await adService.getActiveAdSlots()
-  if (slotsAfterApprove.marketplaceBanner?.id !== ad1.id) throw new Error('TEST 6 Failed: Approved banner ad not in marketplaceBanner slot')
-  if (slotsAfterApprove.marketplaceFeatured !== null) throw new Error('TEST 6 Failed: Banner ad leaked into marketplaceFeatured slot')
-  if (slotsAfterApprove.marketplaceSidebar !== null) throw new Error('TEST 6 Failed: Banner ad leaked into marketplaceSidebar slot')
+  if (!slotHasAd(slotsAfterApprove.marketplaceBanner, ad1.id)) throw new Error('TEST 6 Failed: Approved banner ad not in marketplaceBanner slot')
+  if (slotsAfterApprove.marketplaceFeatured.length > 0 && slotHasAd(slotsAfterApprove.marketplaceFeatured, ad1.id)) throw new Error('TEST 6 Failed: Banner ad leaked into marketplaceFeatured slot')
+  if (slotsAfterApprove.marketplaceSidebar.length > 0 && slotHasAd(slotsAfterApprove.marketplaceSidebar, ad1.id)) throw new Error('TEST 6 Failed: Banner ad leaked into marketplaceSidebar slot')
   console.log('✅ TEST 6 Passed: Banner ad appears ONLY in MARKETPLACE_BANNER slot.\n')
 
   // TEST 7: Featured ad placement isolation
@@ -150,9 +163,9 @@ async function runAdsSuite() {
   await adService.approveAdvertisement(adFeatured.id, admin.id)
 
   const featuredCheck = await adService.getActiveAdForPlacement('MARKETPLACE_FEATURED')
-  if (featuredCheck?.id !== adFeatured.id) throw new Error('TEST 7 Failed: Featured ad not found in MARKETPLACE_FEATURED')
+  if (!slotHasAd(featuredCheck, adFeatured.id)) throw new Error('TEST 7 Failed: Featured ad not found in MARKETPLACE_FEATURED')
   const bannerCheck7 = await adService.getActiveAdForPlacement('MARKETPLACE_BANNER')
-  if (bannerCheck7?.id === adFeatured.id) throw new Error('TEST 7 Failed: Featured ad leaked into MARKETPLACE_BANNER')
+  if (slotHasAd(bannerCheck7, adFeatured.id)) throw new Error('TEST 7 Failed: Featured ad leaked into MARKETPLACE_BANNER')
   console.log('✅ TEST 7 Passed: Featured ad appears ONLY in MARKETPLACE_FEATURED.\n')
 
   // TEST 8: Sidebar ad placement isolation
@@ -175,7 +188,7 @@ async function runAdsSuite() {
   await adService.approveAdvertisement(adSidebar.id, admin.id)
 
   const sidebarCheck = await adService.getActiveAdForPlacement('MARKETPLACE_SIDEBAR')
-  if (sidebarCheck?.id !== adSidebar.id) throw new Error('TEST 8 Failed: Sidebar ad not found in MARKETPLACE_SIDEBAR')
+  if (!slotHasAd(sidebarCheck, adSidebar.id)) throw new Error('TEST 8 Failed: Sidebar ad not found in MARKETPLACE_SIDEBAR')
   console.log('✅ TEST 8 Passed: Sidebar ad appears ONLY in MARKETPLACE_SIDEBAR.\n')
 
   // TEST 9: Expired advertisement does not appear
@@ -199,10 +212,10 @@ async function runAdsSuite() {
   console.log('TEST 10: Paused advertisement does not appear...')
   await adService.pauseAdvertisement(ad1.id, advertiser.id)
   const bannerCheck10 = await adService.getActiveAdForPlacement('MARKETPLACE_BANNER')
-  if (bannerCheck10?.id === ad1.id) throw new Error('TEST 10 Failed: Paused ad still returned in active slots')
+  if (slotHasAd(bannerCheck10, ad1.id)) throw new Error('TEST 10 Failed: Paused ad still returned in active slots')
   await adService.resumeAdvertisement(ad1.id, advertiser.id)
   const bannerCheck10Resume = await adService.getActiveAdForPlacement('MARKETPLACE_BANNER')
-  if (bannerCheck10Resume?.id !== ad1.id) throw new Error('TEST 10 Failed: Resumed ad failed to reappear')
+  if (!slotHasAd(bannerCheck10Resume, ad1.id)) throw new Error('TEST 10 Failed: Resumed ad failed to reappear')
   console.log('✅ TEST 10 Passed: Paused ad disappears immediately, resumed ad reappears.\n')
 
   // TEST 11: Rejected advertisement does not appear
@@ -290,8 +303,15 @@ async function runAdsSuite() {
   const bannerSlot = await adService.getActiveAdForPlacement('MARKETPLACE_BANNER')
   const featuredSlot = await adService.getActiveAdForPlacement('MARKETPLACE_FEATURED')
   const sidebarSlot = await adService.getActiveAdForPlacement('MARKETPLACE_SIDEBAR')
-  if (!bannerSlot || !featuredSlot || !sidebarSlot) throw new Error('TEST 19 Failed: Missing slot in placement query')
-  if (bannerSlot.placement !== 'MARKETPLACE_BANNER' || featuredSlot.placement !== 'MARKETPLACE_FEATURED' || sidebarSlot.placement !== 'MARKETPLACE_SIDEBAR') {
+  if (!bannerSlot.length || !featuredSlot.length || !sidebarSlot.length) throw new Error('TEST 19 Failed: Missing slot in placement query')
+  const bannerFirst = slotFirstAd(bannerSlot)
+  const featuredFirst = slotFirstAd(featuredSlot)
+  const sidebarFirst = slotFirstAd(sidebarSlot)
+  if (
+    bannerFirst?.placement !== 'MARKETPLACE_BANNER' ||
+    featuredFirst?.placement !== 'MARKETPLACE_FEATURED' ||
+    sidebarFirst?.placement !== 'MARKETPLACE_SIDEBAR'
+  ) {
     throw new Error('TEST 19 Failed: Slot placement mismatch')
   }
   console.log('✅ TEST 19 Passed: Placement querying returns exact slot.\n')

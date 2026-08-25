@@ -1,58 +1,68 @@
-import { useEffect, useRef } from 'react'
 import type { AdPlacement, Advertisement } from '../../types/monetization'
 import { useAdvertisementSlots } from '../../hooks/useAdvertisementSlots'
-import { AdvertisementCard } from './AdvertisementCard'
-import { AdvertisementCTA } from './AdvertisementCTA'
+import { MarketplaceBannerAd } from './MarketplaceBannerAd'
+import { FeaturedAdvertisement } from './FeaturedAdvertisement'
+import { SidebarAdvertisement } from './SidebarAdvertisement'
 import { AdvertisementSkeleton } from './AdvertisementSkeleton'
-import * as adService from '../../services/advertisement.service'
 
 interface AdvertisementSlotProps {
   placement: AdPlacement
-  /** Optional pre-fetched ad override */
-  ad?: Advertisement | null
+  /** Optional pre-fetched ads override (array for carousel) */
+  ads?: Advertisement[]
   className?: string
+  /** Hide gracefully on API error instead of showing empty CTA */
+  hideOnError?: boolean
 }
 
-export function AdvertisementSlot({ placement, ad: overrideAd, className = '' }: AdvertisementSlotProps) {
-  const { getSlot, isLoading } = useAdvertisementSlots()
-  const ad = overrideAd !== undefined ? overrideAd : getSlot(placement)
-  const slotRef = useRef<HTMLDivElement>(null)
-  const impressionRecorded = useRef<string | null>(null)
+/**
+ * AdvertisementSlot — routes a placement to the correct carousel component.
+ * Fetches all slots once via useAdvertisementSlots (shared 60s cache).
+ */
+export function AdvertisementSlot({
+  placement,
+  ads: overrideAds,
+  className = '',
+  hideOnError = false,
+}: AdvertisementSlotProps) {
+  const { getSlot, isLoading, error } = useAdvertisementSlots()
+  const useSharedFetch = overrideAds === undefined
+  const ads = overrideAds ?? getSlot(placement)
 
-  useEffect(() => {
-    if (!ad || impressionRecorded.current === ad.id) return
+  if (error && hideOnError) return null
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const [entry] = entries
-        if (entry.isIntersecting && impressionRecorded.current !== ad.id) {
-          impressionRecorded.current = ad.id
-          adService.recordAdImpression(ad.id)
-        }
-      },
-      { threshold: 0.3 }, // at least 30% visible in viewport
-    )
-
-    if (slotRef.current) {
-      observer.observe(slotRef.current)
-    }
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [ad])
-
-  if (isLoading && ad === undefined) {
+  if (useSharedFetch && isLoading && ads.length === 0) {
     return <AdvertisementSkeleton placement={placement} className={className} />
   }
 
-  return (
-    <div ref={slotRef} className={`w-full ${className}`}>
-      {ad ? (
-        <AdvertisementCard ad={ad} placement={placement} />
-      ) : (
-        <AdvertisementCTA placement={placement} />
-      )}
-    </div>
-  )
+  if (placement === 'MARKETPLACE_BANNER') {
+    return (
+      <MarketplaceBannerAd
+        ads={ads}
+        isLoading={false}
+        className={className}
+      />
+    )
+  }
+
+  if (placement === 'MARKETPLACE_FEATURED') {
+    return (
+      <FeaturedAdvertisement
+        ads={ads}
+        isLoading={false}
+        className={className}
+      />
+    )
+  }
+
+  if (placement === 'MARKETPLACE_SIDEBAR') {
+    return (
+      <SidebarAdvertisement
+        ads={ads}
+        isLoading={false}
+        className={className}
+      />
+    )
+  }
+
+  return null
 }

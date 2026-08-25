@@ -18,6 +18,7 @@ import Navbar from '../../components/layout/Navbar'
 import Footer from '../../components/layout/Footer'
 import type { Advertisement, AdStatus } from '../../types/monetization'
 import * as adService from '../../services/advertisement.service'
+import { buildCloudinaryUrl } from '../../utils/advertisementUtils'
 import { toast } from 'react-hot-toast'
 
 export default function MyAdvertisementsPage() {
@@ -268,7 +269,7 @@ export default function MyAdvertisementsPage() {
                     <div className="flex items-start gap-4 min-w-0 flex-1">
                       {ad.image && (
                         <img
-                          src={ad.image}
+                          src={buildCloudinaryUrl(ad, 200)}
                           alt={ad.title}
                           className="w-20 h-16 sm:w-24 sm:h-20 rounded-2xl object-cover bg-stone-100 border border-stone-200 shrink-0"
                         />

@@ -13,6 +13,7 @@ import * as monetizationService from '../../services/monetization.service'
 import * as adService from '../../services/advertisement.service'
 import * as paymentService from '../../services/payment.service'
 import type { Plan, Advertisement, AdminMonetizationStats } from '../../types/monetization'
+import { buildCloudinaryUrl } from '../../utils/advertisementUtils'
 import { AdminLayout } from '../../components/admin/AdminLayout'
 
 export default function AdminMonetization() {
@@ -461,7 +462,7 @@ export default function AdminMonetization() {
                           <div className="flex items-start gap-4">
                             {ad.image && (
                               <img
-                                src={ad.image}
+                                src={buildCloudinaryUrl(ad, 200)}
                                 alt={ad.title}
                                 className="w-24 h-16 object-cover rounded-lg border border-stone-800 shrink-0"
                               />

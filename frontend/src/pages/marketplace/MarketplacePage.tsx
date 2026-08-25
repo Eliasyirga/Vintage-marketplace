@@ -676,6 +676,11 @@ export default function MarketplacePage() {
               </div>
             )}
 
+            {/* Mobile Sponsored Placement — sidebar slot in compact horizontal format */}
+            <div className="lg:hidden">
+              <AdvertisementSlot placement="MARKETPLACE_SIDEBAR" />
+            </div>
+
             {/* Listings Grid */}
             {isLoading ? (
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-2.5 sm:gap-4 lg:gap-5">

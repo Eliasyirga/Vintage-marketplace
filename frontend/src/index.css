@@ -132,6 +132,46 @@
   animation: hero-pulse-glow 8s ease-in-out infinite;
 }
 
+/* Section scroll reveal */
+.section-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.section-reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.section-reveal-delay-1.section-reveal-visible { transition-delay: 0.08s; }
+.section-reveal-delay-2.section-reveal-visible { transition-delay: 0.16s; }
+.section-reveal-delay-3.section-reveal-visible { transition-delay: 0.24s; }
+
+/* Social proof marquee */
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  animation: marquee-scroll 32s linear infinite;
+  width: max-content;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+  .section-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
 /* Startup & Splash Screen Animations */
 @keyframes splash-scale-in {
   from {

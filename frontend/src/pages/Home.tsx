@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import Hero from '../components/home/Hero'
+import SocialProofMarquee from '../components/home/SocialProofMarquee'
 import TrustFeatures from '../components/home/TrustFeatures'
 import CategorySection from '../components/home/CategorySection'
 import FeaturedListings from '../components/home/FeaturedListings'
@@ -11,7 +12,7 @@ import HowItWorks from '../components/home/HowItWorks'
 import SellerCTA from '../components/home/SellerCTA'
 import SafetySection from '../components/home/SafetySection'
 import RecentListings from '../components/home/RecentListings'
-import { RecentlyViewed } from '../components/recentlyViewed/RecentlyViewed'
+import SectionReveal from '../components/home/SectionReveal'
 import { RecommendedForYou } from '../components/recommendations/RecommendedForYou'
 import { AdvertisementSlot } from '../components/advertisements/AdvertisementSlot'
 
@@ -32,32 +33,55 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-50 text-stone-900 selection:bg-amber-500 selection:text-white">
-      {/* Navbar */}
       <Navbar />
 
-      {/* Main Content */}
       <main className="flex-1">
         <Hero />
-        <TrustFeatures />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <AdvertisementSlot placement="MARKETPLACE_BANNER" />
-        </div>
-        <CategorySection />
-        <FeaturedListings />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <RecommendedForYou limit={12} maxItems={8} />
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <RecentlyViewed limit={4} />
-        </div>
-        <LocationSection />
+        <SocialProofMarquee />
+
+        <SectionReveal>
+          <TrustFeatures />
+        </SectionReveal>
+
+        <SectionReveal delay={1}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <AdvertisementSlot placement="MARKETPLACE_BANNER" />
+          </div>
+        </SectionReveal>
+
+        <SectionReveal delay={2}>
+          <CategorySection />
+        </SectionReveal>
+
+        <SectionReveal>
+          <FeaturedListings />
+        </SectionReveal>
+
+        <SectionReveal delay={1}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <RecommendedForYou limit={12} maxItems={8} />
+          </div>
+        </SectionReveal>
+
+        <SectionReveal delay={2}>
+          <LocationSection />
+        </SectionReveal>
+
         <HowItWorks />
-        <SellerCTA />
-        <SafetySection />
-        <RecentListings />
+
+        <SectionReveal>
+          <SellerCTA />
+        </SectionReveal>
+
+        <SectionReveal delay={1}>
+          <SafetySection />
+        </SectionReveal>
+
+        <SectionReveal delay={2}>
+          <RecentListings />
+        </SectionReveal>
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   )

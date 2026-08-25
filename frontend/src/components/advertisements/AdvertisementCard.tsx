@@ -11,7 +11,7 @@ import React, { useState, useCallback } from 'react'
 import { ExternalLink, Store } from 'lucide-react'
 import type { Advertisement, AdPlacement } from '../../types/monetization'
 import { AdvertisementBadge } from './AdvertisementBadge'
-import { buildCloudinaryUrl } from './AdCarousel'
+import { buildCloudinaryUrl, getAdCtaText } from '../../utils/advertisementUtils'
 import * as adService from '../../services/advertisement.service'
 
 interface AdvertisementCardProps {
@@ -102,7 +102,7 @@ export function AdvertisementCard({ ad, placement, className = '' }: Advertiseme
               onClick={handleClick}
               className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs sm:text-sm transition-all shadow-md group-hover:shadow-amber-500/25 group-hover:scale-[1.02] active:scale-[0.98]"
             >
-              <span>Visit Site</span>
+              <span>{getAdCtaText(ad.targetUrl)}</span>
               <ExternalLink className="w-4 h-4" />
             </button>
           </div>
@@ -163,7 +163,7 @@ export function AdvertisementCard({ ad, placement, className = '' }: Advertiseme
             onClick={handleClick}
             className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-amber-600 text-white font-bold text-xs transition-colors shadow-2xs group-hover:shadow-sm"
           >
-            <span>Learn More</span>
+            <span>{getAdCtaText(ad.targetUrl)}</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </button>
         </div>

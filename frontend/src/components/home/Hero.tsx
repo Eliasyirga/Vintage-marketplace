@@ -318,10 +318,12 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* Bottom fade into next section */}
-      <div
-        className="relative z-10 h-16 mt-auto bg-gradient-to-b from-transparent to-white"
-      />
+      {/* Bottom wave into next section */}
+      <div className="relative z-10 mt-auto" aria-hidden="true">
+        <svg className="w-full h-12 sm:h-16 text-white" viewBox="0 0 1440 48" preserveAspectRatio="none" fill="currentColor">
+          <path d="M0 48V24C240 0 480 0 720 24C960 48 1200 48 1440 24V48H0Z" />
+        </svg>
+      </div>
     </section>
   )
 }
