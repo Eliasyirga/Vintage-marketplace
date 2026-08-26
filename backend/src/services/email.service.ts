@@ -81,7 +81,11 @@ async function sendViaBrevo({
   html: string
   text?: string
 }): Promise<void> {
-  const senderEmail = env.SMTP_USER || 'noreply@vintagemarketplace.com'
+  const senderEmail =
+    process.env['BREVO_SENDER_EMAIL'] ||
+    env.SMTP_USER ||
+    'eliasyirga575@gmail.com'
+
   const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: {
@@ -100,7 +104,9 @@ async function sendViaBrevo({
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}))
-    throw new Error(`Brevo API error (${res.status}): ${JSON.stringify(errorData)}`)
+    const errorMsg = (errorData as any)?.message || JSON.stringify(errorData)
+    console.error(`❌ [Brevo Error] Status ${res.status}:`, errorMsg)
+    throw new Error(`Brevo error: ${errorMsg}`)
   }
 }
 
