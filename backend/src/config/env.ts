@@ -36,15 +36,20 @@ export const env = {
   get REFRESH_TOKEN_SECRET() { return required('REFRESH_TOKEN_SECRET') },
   REFRESH_TOKEN_EXPIRES_IN: optional('REFRESH_TOKEN_EXPIRES_IN', '7d'),
 
-  // Email
+  // Email & Delivery (SMTP or HTTP API for PaaS like Render)
+  RESEND_API_KEY: optional('RESEND_API_KEY', ''),
+  BREVO_API_KEY: optional('BREVO_API_KEY', ''),
   SMTP_HOST: optional('SMTP_HOST', ''),
   SMTP_PORT: parseInt(optional('SMTP_PORT', '587'), 10),
   SMTP_USER: optional('SMTP_USER', ''),
   SMTP_PASSWORD: optional('SMTP_PASSWORD', ''),
-  // Gmail SMTP rejects if FROM != the authenticated sender — default to SMTP_USER
+  // Gmail SMTP rejects if FROM != the authenticated sender — default to SMTP_USER or Resend default
   get EMAIL_FROM() {
     const configured = process.env['EMAIL_FROM']
     if (configured) return configured
+    if (process.env['RESEND_API_KEY']) {
+      return 'Vintage Marketplace <onboarding@resend.dev>'
+    }
     // Fall back to "Display Name <user@gmail.com>" format
     const user = process.env['SMTP_USER'] || ''
     return user ? `"Vintage Marketplace" <${user}>` : '"Vintage Marketplace" <noreply@vintagemarketplace.com>'

@@ -26,35 +26,102 @@ function forceIpv4Lookup(
   })
 }
 
-// ─── Singleton Transporter ────────────────────────────────────────────────────
+// ─── HTTP API Delivery (HTTPS Port 443 — Immune to PaaS / Render Port Blocking) ──
+
+async function sendViaResend({
+  to,
+  subject,
+  html,
+  text,
+}: {
+  to: string
+  subject: string
+  html: string
+  text?: string
+}): Promise<void> {
+  const from = env.EMAIL_FROM || 'Vintage Marketplace <onboarding@resend.dev>'
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject,
+      html,
+      text: text || undefined,
+    }),
+  })
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}))
+    throw new Error(`Resend API error (${res.status}): ${JSON.stringify(errorData)}`)
+  }
+}
+
+async function sendViaBrevo({
+  to,
+  name,
+  subject,
+  html,
+  text,
+}: {
+  to: string
+  name?: string
+  subject: string
+  html: string
+  text?: string
+}): Promise<void> {
+  const senderEmail = env.SMTP_USER || 'noreply@vintagemarketplace.com'
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': env.BREVO_API_KEY,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      sender: { name: 'Vintage Marketplace', email: senderEmail },
+      to: [{ email: to, name: name || to.split('@')[0] }],
+      subject,
+      htmlContent: html,
+      textContent: text || undefined,
+    }),
+  })
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}))
+    throw new Error(`Brevo API error (${res.status}): ${JSON.stringify(errorData)}`)
+  }
+}
+
+// ─── Singleton Transporter & Builder ──────────────────────────────────────────
 let transporter: nodemailer.Transporter | null = null
 
 export function isSMTPConfigured(): boolean {
-  return !!(env.SMTP_USER && env.SMTP_PASSWORD && (env.SMTP_HOST || env.SMTP_USER.includes('@gmail.com')))
+  return !!(
+    env.RESEND_API_KEY ||
+    env.BREVO_API_KEY ||
+    (env.SMTP_USER && env.SMTP_PASSWORD && (env.SMTP_HOST || env.SMTP_USER.includes('@gmail.com')))
+  )
 }
 
-function getTransporter(): nodemailer.Transporter | null {
-  if (transporter) return transporter
-
-  if (!isSMTPConfigured()) {
-    return null
-  }
-
-  // Strip any accidental spaces from Gmail App Passwords (e.g. "xxxx xxxx xxxx xxxx" → "xxxxxxxxxxxxxxxx")
+function buildTransport(port: number): nodemailer.Transporter {
   const cleanPassword = env.SMTP_PASSWORD.replace(/\s+/g, '')
-
   const hostLower = (env.SMTP_HOST || '').toLowerCase()
   const userLower = (env.SMTP_USER || '').toLowerCase()
   const isGmail = hostLower.includes('gmail') || userLower.includes('@gmail.com')
 
   const host = isGmail ? (env.SMTP_HOST || 'smtp.gmail.com') : env.SMTP_HOST
-  const port = env.SMTP_PORT || (isGmail ? 465 : 587)
   const isSecure = port === 465
 
-  transporter = nodemailer.createTransport({
+  return nodemailer.createTransport({
     host,
     port,
-    secure: isSecure, // 465 = true (SSL), 587 = false (STARTTLS)
+    secure: isSecure, // 465 = true (implicit TLS), 587 = false (STARTTLS)
+    requireTLS: port === 587,
     auth: {
       user: env.SMTP_USER,
       pass: cleanPassword,
@@ -63,57 +130,81 @@ function getTransporter(): nodemailer.Transporter | null {
       rejectUnauthorized: false,
       servername: host,
     },
-    lookup: forceIpv4Lookup, // Strictly force IPv4 resolution in socket connection
-    connectionTimeout: 20000,
-    greetingTimeout: 20000,
-    socketTimeout: 30000,
+    lookup: forceIpv4Lookup, // Strictly force IPv4
+    connectionTimeout: 12000,
+    greetingTimeout: 12000,
+    socketTimeout: 20000,
     pool: false,
   } as nodemailer.TransportOptions)
+}
 
+function getTransporter(): nodemailer.Transporter | null {
+  if (transporter) return transporter
+  if (!isSMTPConfigured()) return null
+  const defaultPort = env.SMTP_PORT || 587
+  transporter = buildTransport(defaultPort)
   return transporter
 }
 
-// ─── SMTP Connection Verification ────────────────────────────────────────────
+// ─── Email Connection Verification ───────────────────────────────────────────
 /**
- * Verify the SMTP connection at startup or on-demand.
- * Logs clear diagnostic messages and tips without exposing credentials.
+ * Verify the email delivery configuration at startup or on-demand.
+ * Checks Resend/Brevo HTTP API or tests SMTP connection.
  */
 export async function verifyEmailConnection(): Promise<boolean> {
-  transporter = null
-  const transport = getTransporter()
-  if (!transport) {
+  if (env.RESEND_API_KEY) {
+    console.log('✅ [Email] Resend HTTP API configured (HTTPS Port 443 — immune to Render port blocking) — ready to send.')
+    return true
+  }
+
+  if (env.BREVO_API_KEY) {
+    console.log('✅ [Email] Brevo HTTP API configured (HTTPS Port 443 — immune to Render port blocking) — ready to send.')
+    return true
+  }
+
+  if (!isSMTPConfigured()) {
     console.warn(
-      '⚠️ [Email] SMTP is NOT configured in environment variables.\n' +
-      '   Required: SMTP_USER, SMTP_PASSWORD, and SMTP_HOST.\n' +
-      '   Emails (including verification OTPs) will NOT be delivered until configured in deployment settings.',
+      '⚠️ [Email] Email is NOT configured in environment variables.\n' +
+      '   Option 1 (Recommended on Render): Add RESEND_API_KEY in Render Environment.\n' +
+      '   Option 2: Configure SMTP_USER, SMTP_PASSWORD, and SMTP_HOST.',
     )
     return false
   }
 
+  const primaryPort = env.SMTP_PORT || 587
+  const fallbackPort = primaryPort === 587 ? 465 : 587
+
+  // Try primary port (587 STARTTLS by default)
   try {
+    const transport = buildTransport(primaryPort)
     await transport.verify()
-    console.log('✅ [Email] SMTP connection verified successfully — ready to deliver emails.')
+    transporter = transport
+    console.log(`✅ [Email] SMTP connection verified successfully on port ${primaryPort} — ready to deliver emails.`)
     return true
   } catch (err: unknown) {
-    const e = err as { code?: string; response?: string; responseCode?: number; message?: string }
-    console.error(
-      `❌ [Email] SMTP connection verification failed:\n` +
-      `   Message: ${e.message}\n` +
-      `   Code:    ${e.code ?? 'N/A'}\n` +
-      `   Reply:   ${e.response ?? 'N/A'}`,
-    )
+    const e = err as { code?: string; response?: string; message?: string }
+    console.warn(`⚠️ [Email] Port ${primaryPort} connection attempt failed (${e.code ?? e.message}). Trying fallback port ${fallbackPort}...`)
 
-    if (e.response?.includes('535') || e.code === 'EAUTH') {
+    // Try alternative port (465 SSL)
+    try {
+      const fallbackTransport = buildTransport(fallbackPort)
+      await fallbackTransport.verify()
+      transporter = fallbackTransport
+      console.log(`✅ [Email] SMTP connection verified successfully on fallback port ${fallbackPort} — ready to deliver emails.`)
+      return true
+    } catch (fallbackErr: unknown) {
+      const fe = fallbackErr as { code?: string; response?: string; message?: string }
       console.error(
-        '💡 [Email Tip] Authentication failed. If using Gmail:\n' +
-        '   1. Ensure 2-Step Verification is turned ON on your Google Account.\n' +
-        '   2. Generate an App Password at: https://myaccount.google.com/apppasswords\n' +
-        '   3. Use the 16-character App Password for SMTP_PASSWORD (do NOT use your standard account password).',
+        `❌ [Email] SMTP connection failed on both ports (${primaryPort} & ${fallbackPort}):\n` +
+        `   Message: ${fe.message}\n` +
+        `   Code:    ${fe.code ?? 'N/A'}\n` +
+        `   💡 Tip for Render: Render free/starter tiers block all outbound SMTP ports (25, 465, 587).\n` +
+        `      To deliver emails instantly without port blocks, add RESEND_API_KEY to your Render Environment (get a free key at https://resend.com).`,
       )
-    }
 
-    transporter = null
-    return false
+      transporter = null
+      return false
+    }
   }
 }
 
@@ -215,17 +306,6 @@ export async function sendVerificationOTP({
     console.log(`\n🔑 [VERIFICATION OTP] To: ${to} | Code: ${otp}\n`)
   }
 
-  const transport = getTransporter()
-
-  // ── No SMTP configured ────────────────────────────────────────────────────
-  if (!transport) {
-    console.warn(`⚠️ [Email] Cannot send OTP to ${to} — SMTP is not configured. (Check SMTP_HOST, SMTP_USER, SMTP_PASSWORD)`)
-    if (env.isProduction) {
-      throw new Error('Email service is not configured on the server. Please check SMTP environment variables.')
-    }
-    return
-  }
-
   // ── Build HTML template ───────────────────────────────────────────────────
   const html = renderTemplate('verification-otp.html', {
     fullName: name,
@@ -252,26 +332,86 @@ If you did not create a Vintage Marketplace account, ignore this email.
 — Vintage Marketplace
   `.trim()
 
-  // ── Send ──────────────────────────────────────────────────────────────────
+  const subject = 'Vintage Marketplace — Verify Your Email'
+
+  // 1. Try Resend HTTP API if configured (HTTPS Port 443 — 100% reliable on Render)
+  if (env.RESEND_API_KEY) {
+    try {
+      await sendViaResend({ to, subject, html, text })
+      console.log(`✅ [Email] OTP delivered via Resend HTTP API to ${to}`)
+      return
+    } catch (err: unknown) {
+      console.error(`❌ [Email] Resend API send failed:`, err)
+      if (env.isProduction) {
+        throw new Error('Unable to deliver verification email. Please try again shortly.')
+      }
+    }
+  }
+
+  // 2. Try Brevo HTTP API if configured
+  if (env.BREVO_API_KEY) {
+    try {
+      await sendViaBrevo({ to, name, subject, html, text })
+      console.log(`✅ [Email] OTP delivered via Brevo HTTP API to ${to}`)
+      return
+    } catch (err: unknown) {
+      console.error(`❌ [Email] Brevo API send failed:`, err)
+      if (env.isProduction) {
+        throw new Error('Unable to deliver verification email. Please try again shortly.')
+      }
+    }
+  }
+
+  // 3. Fallback to SMTP
+  const transport = getTransporter()
+
+  if (!transport) {
+    console.warn(`⚠️ [Email] Cannot send OTP to ${to} — No email provider configured. (Set RESEND_API_KEY or SMTP variables)`)
+    if (env.isProduction) {
+      throw new Error('Email service is not configured on the server.')
+    }
+    return
+  }
+
   try {
     await transport.sendMail({
       from: env.EMAIL_FROM,
       to,
-      subject: 'Vintage Marketplace — Verify Your Email',
+      subject,
       text,
       html,
     })
     console.log(`✅ [Email] OTP successfully sent to ${to}`)
   } catch (err: unknown) {
     const e = err as { code?: string; response?: string; responseCode?: number; message?: string }
-    console.error(
-      `❌ [Email] OTP sendMail failed to ${to}:\n` +
-      `   Message: ${e.message}\n` +
-      `   Code:    ${e.code ?? 'N/A'}\n` +
-      `   Reply:   ${e.response ?? 'N/A'}`,
-    )
-    transporter = null // Reset transporter so next attempt re-initializes cleanly
+    const currentPort = (transport as any)?.options?.port || 587
+    const altPort = currentPort === 587 ? 465 : 587
 
+    console.warn(`⚠️ [Email] OTP sendMail failed on port ${currentPort} (${e.code ?? e.message}). Retrying on port ${altPort}...`)
+
+    try {
+      const altTransport = buildTransport(altPort)
+      await altTransport.sendMail({
+        from: env.EMAIL_FROM,
+        to,
+        subject,
+        text,
+        html,
+      })
+      transporter = altTransport
+      console.log(`✅ [Email] OTP successfully delivered to ${to} via fallback port ${altPort}`)
+      return
+    } catch (retryErr: unknown) {
+      const re = retryErr as { code?: string; response?: string; message?: string }
+      console.error(
+        `❌ [Email] OTP sendMail failed on both ports to ${to}:\n` +
+        `   Message: ${re.message}\n` +
+        `   Code:    ${re.code ?? 'N/A'}\n` +
+        `   Reply:   ${re.response ?? 'N/A'}`,
+      )
+    }
+
+    transporter = null
     if (env.isDevelopment) {
       return
     }
@@ -295,9 +435,27 @@ export async function sendEmail({
     console.log(`✉️ [DEV EMAIL] To: ${to} | Subject: ${subject}`)
   }
 
+  if (env.RESEND_API_KEY) {
+    try {
+      await sendViaResend({ to, subject, html, text })
+      return
+    } catch (err) {
+      console.error(`❌ [Email] Resend sendEmail failed:`, err)
+    }
+  }
+
+  if (env.BREVO_API_KEY) {
+    try {
+      await sendViaBrevo({ to, subject, html, text })
+      return
+    } catch (err) {
+      console.error(`❌ [Email] Brevo sendEmail failed:`, err)
+    }
+  }
+
   const transport = getTransporter()
   if (!transport) {
-    console.warn(`⚠️ [Email] Cannot send email to ${to} — SMTP not configured.`)
+    console.warn(`⚠️ [Email] Cannot send email to ${to} — Email not configured.`)
     return
   }
 
@@ -313,3 +471,4 @@ export async function sendEmail({
     console.error(`❌ [Email] sendMail failed for ${to}:`, err)
   }
 }
+
