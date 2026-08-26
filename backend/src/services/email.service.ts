@@ -39,7 +39,12 @@ async function sendViaResend({
   html: string
   text?: string
 }): Promise<void> {
-  const from = env.EMAIL_FROM || 'Vintage Marketplace <onboarding@resend.dev>'
+  // Resend requires onboarding@resend.dev unless a custom domain has been verified in Resend dashboard
+  let from = env.EMAIL_FROM
+  if (!from || from.includes('@gmail.com') || from.includes('noreply@vintagemarketplace.com')) {
+    from = 'Vintage Marketplace <onboarding@resend.dev>'
+  }
+
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -57,7 +62,9 @@ async function sendViaResend({
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}))
-    throw new Error(`Resend API error (${res.status}): ${JSON.stringify(errorData)}`)
+    const errorMsg = (errorData as any)?.message || JSON.stringify(errorData)
+    console.error(`❌ [Resend Error] Status ${res.status}:`, errorMsg)
+    throw new Error(`Resend error: ${errorMsg}`)
   }
 }
 
