@@ -53,10 +53,10 @@ export default function Register() {
       const respData = axiosErr?.response?.data
       if (respData?.errors?.length) {
         const fieldErrors: RegistrationFormErrors = {}
+        const validFields = ['fullName', 'email', 'phone', 'password', 'confirmPassword']
         for (const e of respData.errors) {
-          const key = e.field as keyof RegistrationFormErrors
-          if (key in ({} as RegistrationFormErrors)) {
-            fieldErrors[key] = e.message
+          if (validFields.includes(e.field)) {
+            fieldErrors[e.field as keyof RegistrationFormErrors] = e.message
           } else {
             fieldErrors.general = e.message
           }
