@@ -95,7 +95,13 @@ export async function register(input: RegisterInput): Promise<RegisterResult> {
 
   // Send OTP via selected channel
   const destination = verificationMethod === 'EMAIL' ? email! : phone!
-  await dispatchOTP({ method: verificationMethod, destination, otp, name: fullName })
+  try {
+    await dispatchOTP({ method: verificationMethod, destination, otp, name: fullName })
+  } catch (otpErr) {
+    await pending.destroy().catch(() => {})
+    const errMessage = otpErr instanceof Error ? otpErr.message : 'Failed to deliver the verification code.'
+    throw Object.assign(new Error(errMessage), { statusCode: 400 })
+  }
 
   return {
     registrationId: pending.id,
@@ -229,12 +235,17 @@ export async function resendOTP(input: ResendOtpInput): Promise<ResendResult> {
   await pending.save()
 
   const destination = pending.destination
-  await dispatchOTP({
-    method: pending.verification_method,
-    destination,
-    otp,
-    name: pending.full_name,
-  })
+  try {
+    await dispatchOTP({
+      method: pending.verification_method,
+      destination,
+      otp,
+      name: pending.full_name,
+    })
+  } catch (otpErr) {
+    const errMessage = otpErr instanceof Error ? otpErr.message : 'Failed to deliver the verification code.'
+    throw Object.assign(new Error(errMessage), { statusCode: 400 })
+  }
 
   return {
     maskedDestination: pending.maskedDestination,
@@ -282,7 +293,12 @@ export async function changeVerificationMethod(input: ChangeMethodInput): Promis
   await pending.save()
 
   const destination = verificationMethod === 'EMAIL' ? newEmail! : newPhone!
-  await dispatchOTP({ method: verificationMethod, destination, otp, name: pending.full_name })
+  try {
+    await dispatchOTP({ method: verificationMethod, destination, otp, name: pending.full_name })
+  } catch (otpErr) {
+    const errMessage = otpErr instanceof Error ? otpErr.message : 'Failed to deliver the verification code.'
+    throw Object.assign(new Error(errMessage), { statusCode: 400 })
+  }
 
   return {
     registrationId: pending.id,
@@ -414,12 +430,18 @@ export async function forgotPassword(input: ForgotPasswordInput): Promise<Forgot
     is_used: false,
   })
 
-  await dispatchOTP({
-    method,
-    destination,
-    otp,
-    name: user.full_name,
-  })
+  try {
+    await dispatchOTP({
+      method,
+      destination,
+      otp,
+      name: user.full_name,
+    })
+  } catch (otpErr) {
+    await resetRecord.destroy().catch(() => {})
+    const errMessage = otpErr instanceof Error ? otpErr.message : 'Failed to deliver the password reset code.'
+    throw Object.assign(new Error(errMessage), { statusCode: 400 })
+  }
 
   return {
     resetId: resetRecord.id,
