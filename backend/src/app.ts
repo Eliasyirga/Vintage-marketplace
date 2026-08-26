@@ -46,10 +46,15 @@ app.use(
 // ── CORS ───────────────────────────────────────────────────────────────────
 app.use(
   cors({
-    origin: env.CLIENT_URL,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, health probes) or any client origin
+      if (!origin) return callback(null, true)
+      return callback(null, true)
+    },
     credentials: true, // allow cookies (refresh tokens)
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    exposedHeaders: ['Set-Cookie'],
   }),
 )
 

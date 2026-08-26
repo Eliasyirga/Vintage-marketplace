@@ -21,7 +21,10 @@ export interface AuthenticatedSocket extends Socket {
 export function initSocketServer(server: HttpServer): SocketIOServer {
   io = new SocketIOServer(server, {
     cors: {
-      origin: env.CLIENT_URL,
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true)
+        return callback(null, true)
+      },
       credentials: true,
       methods: ['GET', 'POST'],
     },
