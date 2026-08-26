@@ -40,7 +40,6 @@ export function AppLoader({ children }: AppLoaderProps) {
 
     return () => {
       clearTimeout(watchdogTimer)
-      if (timeoutId) clearTimeout(timeoutId)
       if (exitTimeoutId) clearTimeout(exitTimeoutId)
     }
   }, [isLoading])

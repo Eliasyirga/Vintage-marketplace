@@ -19,7 +19,7 @@ import { ChevronLeft, ChevronRight, Megaphone, ArrowRight } from 'lucide-react'
 import type { Advertisement } from '../../types/monetization'
 import * as adService from '../../services/advertisement.service'
 import { useAdvertisementCarousel } from '../../hooks/useAdvertisementCarousel'
-import { buildCloudinaryUrl, getFallbackAdImageUrl } from '../../utils/advertisementUtils'
+import { buildCloudinaryUrl } from '../../utils/advertisementUtils'
 
 export { buildCloudinaryUrl, getFallbackAdImageUrl } from '../../utils/advertisementUtils'
 
