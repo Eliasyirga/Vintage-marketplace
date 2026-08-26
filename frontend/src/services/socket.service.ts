@@ -7,7 +7,8 @@ import type {
   PresenceEvent,
 } from '../types/conversation'
 
-const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://localhost:5000'
+const rawApiUrl = (import.meta.env.VITE_API_URL || 'https://vintage-marketplace-6.onrender.com/api').trim()
+const SOCKET_URL = rawApiUrl.replace(/\/api\/?$/, '')
 
 let socket: Socket | null = null
 

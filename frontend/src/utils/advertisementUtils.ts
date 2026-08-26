@@ -18,7 +18,7 @@ function resolveCloudName(fallbackUrl?: string): string | null {
 
 /** Backend API origin (without /api suffix) — used to resolve local upload paths. */
 function resolveApiOrigin(): string {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+  const apiUrl = import.meta.env.VITE_API_URL || 'https://vintage-marketplace-6.onrender.com/api'
   return apiUrl.replace(/\/api\/?$/, '')
 }
 

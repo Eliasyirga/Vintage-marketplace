@@ -1,7 +1,10 @@
 import axios from 'axios'
 
+const RAW_BASE_URL = (import.meta.env.VITE_API_URL || 'https://vintage-marketplace-6.onrender.com/api').trim()
+const BASE_URL = RAW_BASE_URL.replace(/\/+$/, '')
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: BASE_URL,
   withCredentials: true, // send HttpOnly cookies (refresh token)
   headers: { 'Content-Type': 'application/json' },
 })
@@ -61,7 +64,7 @@ api.interceptors.response.use(
 
       try {
         const response = await axios.post(
-          `${import.meta.env.VITE_API_URL}/auth/refresh`,
+          `${BASE_URL}/auth/refresh`,
           {},
           { withCredentials: true },
         )
