@@ -57,16 +57,42 @@ export default function AdminMonetization() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [statsData, plansData, adsData] = await Promise.all([
+      const [statsRes, plansRes, adsRes] = await Promise.allSettled([
         monetizationService.getAdminMonetizationStats(),
         monetizationService.getAdminPlans(),
         adService.getAllAdsAdmin(),
       ])
-      setStats(statsData)
-      setPlans(plansData)
-      setAds(adsData)
-    } catch {
-      toast.error('Failed to load admin monetization data.')
+
+      let hasError = false
+
+      if (statsRes.status === 'fulfilled') {
+        setStats(statsRes.value)
+      } else {
+        hasError = true
+        console.error('Failed to load monetization stats:', statsRes.reason)
+      }
+
+      if (plansRes.status === 'fulfilled') {
+        setPlans(plansRes.value)
+      } else {
+        hasError = true
+        console.error('Failed to load monetization plans:', plansRes.reason)
+      }
+
+      if (adsRes.status === 'fulfilled') {
+        setAds(adsRes.value)
+      } else {
+        hasError = true
+        console.error('Failed to load admin ads:', adsRes.reason)
+      }
+
+      if (hasError && statsRes.status === 'rejected' && plansRes.status === 'rejected' && adsRes.status === 'rejected') {
+        const errorReason = (statsRes.reason as any)?.response?.data?.message || 'Failed to load admin monetization data.'
+        toast.error(errorReason)
+      }
+    } catch (err: any) {
+      console.error('Error loading admin monetization data:', err)
+      toast.error(err?.response?.data?.message || 'Failed to load admin monetization data.')
     } finally {
       setLoading(false)
     }
