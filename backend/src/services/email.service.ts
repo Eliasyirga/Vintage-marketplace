@@ -9,6 +9,23 @@ if (typeof dns.setDefaultResultOrder === 'function') {
   dns.setDefaultResultOrder('ipv4first')
 }
 
+/**
+ * Custom DNS lookup function that strictly enforces IPv4.
+ * This completely prevents Linux/Render containers from attempting IPv6 connections (ENETUNREACH).
+ */
+function forceIpv4Lookup(
+  hostname: string,
+  options: any,
+  callback?: (err: NodeJS.ErrnoException | null, address: string, family: number) => void,
+) {
+  const cb = typeof options === 'function' ? options : callback
+  return dns.lookup(hostname, { family: 4, all: false }, (err, address, family) => {
+    if (cb) {
+      cb(err, address, family)
+    }
+  })
+}
+
 // ─── Singleton Transporter ────────────────────────────────────────────────────
 let transporter: nodemailer.Transporter | null = null
 
@@ -46,7 +63,7 @@ function getTransporter(): nodemailer.Transporter | null {
       rejectUnauthorized: false,
       servername: host,
     },
-    family: 4, // Strict IPv4 to prevent Render IPv6 ENETUNREACH
+    lookup: forceIpv4Lookup, // Strictly force IPv4 resolution in socket connection
     connectionTimeout: 20000,
     greetingTimeout: 20000,
     socketTimeout: 30000,
