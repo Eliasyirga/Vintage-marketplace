@@ -19,6 +19,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import { resolveImageUrl, handleImageError } from '../../utils/imageUtils'
 
 interface NavItem {
   to: string
@@ -108,9 +109,10 @@ export function AccountSidebar({ onCloseMobile }: { onCloseMobile?: () => void }
         <div className="p-3 bg-stone-50 rounded-2xl border border-stone-100 flex items-center gap-3">
           {user?.avatarUrl ? (
             <img
-              src={user.avatarUrl}
+              src={resolveImageUrl(user.avatarUrl)}
               alt={user.fullName}
               className="w-11 h-11 rounded-full object-cover border border-stone-200"
+              onError={(e) => handleImageError(e)}
             />
           ) : (
             <div className="w-11 h-11 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center text-base shadow-sm">

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { MapPin, Eye, Edit, Trash2, CheckCircle2, ShieldCheck, Clock, Rocket } from 'lucide-react'
 import { CONDITION_LABELS, type Listing } from '../../types/listing'
 import { formatRelativeTime } from '../../utils/date'
+import { resolveImageUrl, handleImageError } from '../../utils/imageUtils'
 import { FavoriteButton } from '../favorites/FavoriteButton'
 
 interface ListingCardProps {
@@ -47,12 +48,9 @@ export function ListingCard({
   onDelete,
   onPromote,
 }: ListingCardProps) {
-  const [imgError, setImgError] = useState(false)
   const [imgLoaded, setImgLoaded] = useState(false)
-
-  const coverImage = !imgError && listing.images && listing.images.length > 0 && listing.images[0].url
-    ? listing.images[0].url
-    : '/placeholder.png'
+  const rawImageUrl = listing.images && listing.images.length > 0 ? listing.images[0].url : null
+  const coverImage = resolveImageUrl(rawImageUrl, listing.category?.slug)
 
   const formattedPrice = Number(listing.price).toLocaleString('en-US')
   const conditionInfo = CONDITION_LABELS[listing.condition]
@@ -77,8 +75,8 @@ export function ListingCard({
               alt={listing.title}
               loading="lazy"
               onLoad={() => setImgLoaded(true)}
-              onError={() => {
-                setImgError(true)
+              onError={(e) => {
+                handleImageError(e, listing.category?.slug)
                 setImgLoaded(true)
               }}
               className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
@@ -168,9 +166,10 @@ export function ListingCard({
               >
                 {listing.seller.avatarUrl ? (
                   <img
-                    src={listing.seller.avatarUrl}
+                    src={resolveImageUrl(listing.seller.avatarUrl)}
                     alt={listing.seller.fullName}
                     className="w-4 h-4 sm:w-5 sm:h-5 rounded-full object-cover border border-stone-200 flex-shrink-0"
+                    onError={(e) => handleImageError(e)}
                   />
                 ) : (
                   <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-amber-100 text-amber-800 font-bold text-[9px] sm:text-[10px] flex items-center justify-center flex-shrink-0">

@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth'
 import * as accountService from '../../services/account.service'
 import { User, AlertTriangle, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { resolveImageUrl, handleImageError } from '../../utils/imageUtils'
 
 
 export default function AccountSettingsPage() {
@@ -134,9 +135,10 @@ export default function AccountSettingsPage() {
           <div className="relative w-20 h-20 rounded-full overflow-hidden bg-amber-100 flex items-center justify-center border-2 border-white shadow">
             {avatarUrl || user?.avatarUrl ? (
               <img
-                src={avatarUrl || user?.avatarUrl || ''}
+                src={resolveImageUrl(avatarUrl || user?.avatarUrl)}
                 alt={user?.fullName || 'Avatar'}
                 className="w-full h-full object-cover"
+                onError={(e) => handleImageError(e)}
               />
             ) : (
               <span className="text-2xl font-bold text-amber-800">

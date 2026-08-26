@@ -2,6 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { Truck, Users, ArrowRight, Calendar } from 'lucide-react'
 import type { SafeOrder } from '../../types/order'
+import { resolveImageUrl, handleImageError } from '../../utils/imageUtils'
 
 interface OrderCardProps {
   order: SafeOrder
@@ -15,7 +16,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, viewType }) => {
   const otherPersonName =
     viewType === 'buyer' ? order.seller?.fullName || 'Seller' : order.buyer?.fullName || 'Buyer'
 
-  const firstImage = order.listing?.images?.[0]?.url
+  const firstImage = resolveImageUrl(order.listing?.images?.[0]?.url)
 
   return (
     <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xs hover:shadow-md transition-all space-y-3.5 sm:space-y-4">
@@ -54,6 +55,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, viewType }) => {
               src={firstImage}
               alt={order.listing?.title || 'Vintage Item'}
               className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl object-cover border border-stone-200 flex-shrink-0"
+              onError={(e) => handleImageError(e)}
             />
           ) : (
             <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-amber-100 border border-amber-300 flex items-center justify-center font-bold text-amber-700 flex-shrink-0 text-xs">

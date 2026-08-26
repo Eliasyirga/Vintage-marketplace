@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize'
 import { sequelize } from '../config/database'
+import { env } from '../config/env'
 
 interface ListingImageAttributes {
   id: string
@@ -48,9 +49,15 @@ class ListingImage extends Model<ListingImageAttributes, ListingImageCreationAtt
   declare readonly updated_at: Date
 
   toSafeObject() {
+    // Sanitize legacy localhost URLs (stored during dev/seeding without Cloudinary)
+    // so the API always returns a publicly-accessible URL
+    let safeUrl = this.url
+    if (safeUrl && safeUrl.includes('localhost:5000')) {
+      safeUrl = safeUrl.replace('http://localhost:5000', env.API_PUBLIC_URL)
+    }
     return {
       id: this.id,
-      url: this.url,
+      url: safeUrl,
       altText: this.alt_text,
       sortOrder: this.sort_order,
       isCover: this.is_cover,

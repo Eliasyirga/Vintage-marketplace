@@ -14,6 +14,7 @@ import { VerificationBadge } from '../../components/verification/VerificationBad
 import Navbar from '../../components/layout/Navbar'
 import Footer from '../../components/layout/Footer'
 import { useAuthContext } from '../../context/AuthContext'
+import { resolveImageUrl, handleImageError } from '../../utils/imageUtils'
 import {
   MapPin,
   Calendar,
@@ -152,9 +153,10 @@ export default function SellerProfilePage() {
             <div className="flex-shrink-0">
               {profile.profileImage ? (
                 <img
-                  src={profile.profileImage}
+                  src={resolveImageUrl(profile.profileImage)}
                   alt={profile.displayName}
                   className="w-24 h-24 rounded-2xl object-cover border-2 border-amber-200 shadow-md"
+                  onError={(e) => handleImageError(e)}
                 />
               ) : (
                 <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white font-black text-3xl shadow-md border-2 border-amber-300">

@@ -6,6 +6,7 @@ import { recordRecentlyViewed } from '../../services/recentlyViewed.service'
 import { getSellerReviews } from '../../services/review.service'
 import { CONDITION_LABELS, type Listing } from '../../types/listing'
 import type { ReviewItem, RatingSummary } from '../../types/review'
+import { resolveImageUrl, handleImageError } from '../../utils/imageUtils'
 import Navbar from '../../components/layout/Navbar'
 import Footer from '../../components/layout/Footer'
 import { useAuthContext } from '../../context/AuthContext'
@@ -175,7 +176,7 @@ export default function ListingDetailsPage() {
 
   const isOwner = user?.id === listing.seller.id
   const images = listing.images && listing.images.length > 0 ? listing.images : []
-  const currentImage = images[selectedImageIndex]?.url || '/placeholder.png'
+  const currentImage = resolveImageUrl(images[selectedImageIndex]?.url, listing.category?.slug)
   const conditionInfo = CONDITION_LABELS[listing.condition]
   const formattedPrice = Number(listing.price).toLocaleString('en-US', {
     minimumFractionDigits: 0,
@@ -284,6 +285,7 @@ export default function ListingDetailsPage() {
                   src={currentImage}
                   alt={listing.title}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  onError={(e) => handleImageError(e, listing.category?.slug)}
                 />
 
                 {listing.status === 'SOLD' && (
@@ -309,7 +311,7 @@ export default function ListingDetailsPage() {
                         : 'border-stone-200 hover:border-stone-300 opacity-70 hover:opacity-100'
                       }`}
                   >
-                    <img src={img.url} alt={img.altText || `Thumbnail ${idx}`} className="w-full h-full object-cover" />
+                    <img src={resolveImageUrl(img.url, listing.category?.slug)} alt={img.altText || `Thumbnail ${idx}`} className="w-full h-full object-cover" onError={(e) => handleImageError(e, listing.category?.slug)} />
                   </button>
                 ))}
               </div>

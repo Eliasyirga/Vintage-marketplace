@@ -16,6 +16,7 @@ import {
 import { useAuth } from '../../hooks/useAuth'
 import * as accountService from '../../services/account.service'
 import type { AccountOverviewData } from '../../services/account.service'
+import { resolveImageUrl, handleImageError } from '../../utils/imageUtils'
 
 export default function AccountOverviewPage() {
   const { user } = useAuth()
@@ -65,9 +66,10 @@ export default function AccountOverviewPage() {
           <div className="flex items-center gap-4">
             {user?.avatarUrl ? (
               <img
-                src={user.avatarUrl}
+                src={resolveImageUrl(user.avatarUrl)}
                 alt={user.fullName}
                 className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-500/50 shadow-md"
+                onError={(e) => handleImageError(e)}
               />
             ) : (
               <div className="w-16 h-16 rounded-2xl bg-amber-500 text-stone-950 font-extrabold text-2xl flex items-center justify-center shadow-md">
