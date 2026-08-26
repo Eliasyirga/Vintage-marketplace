@@ -41,8 +41,8 @@ export class ChapaPaymentProvider implements PaymentProvider {
       callback_url: params.callbackUrl,
       return_url: params.returnUrl,
       customization: {
-        title: 'Vintage Marketplace Ethiopia',
-        description: params.purpose,
+        title: 'Vintage Market', // Max 16 chars per Chapa validation rules
+        description: (params.purpose || 'Vintage Order Payment').slice(0, 50),
       },
     }
 
@@ -60,9 +60,13 @@ export class ChapaPaymentProvider implements PaymentProvider {
 
       const data: any = await response.json()
       if (!response.ok || data.status !== 'success') {
-        const errMsg = data.message || response.statusText || 'Chapa initialization failed.'
+        const rawMsg = data.message || response.statusText || 'Chapa initialization failed.'
+        const errMsg = typeof rawMsg === 'object' ? JSON.stringify(rawMsg) : String(rawMsg)
         console.error('❌ [Chapa] Payment initialization failed:', errMsg)
-        throw new Error(`Chapa payment initialization failed: ${errMsg}`)
+        throw Object.assign(
+          new Error(`Chapa payment initialization failed: ${errMsg}`),
+          { statusCode: 400 },
+        )
       }
 
       return {
