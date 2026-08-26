@@ -189,7 +189,10 @@ export async function verifyRegistration(input: VerifyOtpInput): Promise<AuthRes
 
     return { user: user.toSafeObject() as SafeUser, accessToken, refreshToken }
   } catch (err) {
-    await transaction.rollback()
+    // Only rollback if the transaction hasn't already been committed or rolled back
+    if (!(transaction as any).finished) {
+      await transaction.rollback().catch(() => {})
+    }
     throw err
   }
 }
