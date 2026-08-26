@@ -1,7 +1,13 @@
 import nodemailer from 'nodemailer'
+import dns from 'dns'
 import fs from 'fs'
 import path from 'path'
 import { env } from '../config/env'
+
+// Ensure IPv4 lookup precedence in this worker
+if (typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first')
+}
 
 // ─── Singleton Transporter ────────────────────────────────────────────────────
 let transporter: nodemailer.Transporter | null = null
@@ -24,39 +30,28 @@ function getTransporter(): nodemailer.Transporter | null {
   const userLower = (env.SMTP_USER || '').toLowerCase()
   const isGmail = hostLower.includes('gmail') || userLower.includes('@gmail.com')
 
-  if (isGmail) {
-    transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: env.SMTP_USER,
-        pass: cleanPassword,
-      },
-      // Force IPv4 to prevent IPv6 connect timeout hangs on cloud hosts like Render/Railway/AWS
-      family: 4,
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 30000,
-      pool: false,
-    } as nodemailer.TransportOptions)
-  } else {
-    transporter = nodemailer.createTransport({
-      host: env.SMTP_HOST,
-      port: env.SMTP_PORT,
-      secure: env.SMTP_PORT === 465,
-      auth: {
-        user: env.SMTP_USER,
-        pass: cleanPassword,
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-      family: 4,
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 30000,
-      pool: false,
-    } as nodemailer.TransportOptions)
-  }
+  const host = isGmail ? (env.SMTP_HOST || 'smtp.gmail.com') : env.SMTP_HOST
+  const port = env.SMTP_PORT || (isGmail ? 465 : 587)
+  const isSecure = port === 465
+
+  transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: isSecure, // 465 = true (SSL), 587 = false (STARTTLS)
+    auth: {
+      user: env.SMTP_USER,
+      pass: cleanPassword,
+    },
+    tls: {
+      rejectUnauthorized: false,
+      servername: host,
+    },
+    family: 4, // Strict IPv4 to prevent Render IPv6 ENETUNREACH
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
+    socketTimeout: 30000,
+    pool: false,
+  } as nodemailer.TransportOptions)
 
   return transporter
 }

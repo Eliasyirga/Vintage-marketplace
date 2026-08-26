@@ -1,6 +1,13 @@
 import 'dotenv/config'
+import dns from 'dns'
 import http from 'http'
 import app from './app'
+
+// Force IPv4 DNS resolution across all network operations (fixes Render IPv6 ENETUNREACH)
+if (typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first')
+}
+
 import { connectDatabase } from './config/database'
 import { env } from './config/env'
 import { seedAdvertisementPlans } from './scripts/seed-ad-plans'
