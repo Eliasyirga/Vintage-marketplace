@@ -7,7 +7,7 @@
 import { useState } from 'react'
 import { ArrowRight, Store } from 'lucide-react'
 import type { Advertisement } from '../../types/monetization'
-import { AdCarousel, AdvertiseHereCTA, SponsoredBadge, buildCloudinaryUrl } from './AdCarousel'
+import { AdCarousel, AdvertiseHereCTA, SponsoredBadge, buildCloudinaryUrl, getFallbackAdImageUrl } from './AdCarousel'
 import { AdvertisementSkeleton } from './AdvertisementSkeleton'
 import { useAdClick, useAdCtaLabel } from '../../hooks/useAdClick'
 
@@ -18,10 +18,16 @@ interface FeaturedAdvertisementProps {
 }
 
 function FeaturedSlide({ ad, isActive }: { ad: Advertisement; isActive: boolean }) {
-  const [imageError, setImageError] = useState(false)
+  const [imgSrc, setImgSrc] = useState<string>(() => buildCloudinaryUrl(ad, 800))
   const handleClick = useAdClick(ad)
   const ctaLabel = useAdCtaLabel(ad)
-  const imageUrl = buildCloudinaryUrl(ad, 800)
+
+  const handleImageError = () => {
+    const fallback = getFallbackAdImageUrl('MARKETPLACE_FEATURED')
+    if (imgSrc !== fallback) {
+      setImgSrc(fallback)
+    }
+  }
 
   const advertiserName =
     ad.advertiserName ||
@@ -40,19 +46,13 @@ function FeaturedSlide({ ad, isActive }: { ad: Advertisement; isActive: boolean 
     >
       <div className="flex flex-col sm:flex-row gap-0">
         <div className="w-full sm:w-44 md:w-52 aspect-[16/9] sm:aspect-auto sm:h-auto sm:min-h-[140px] shrink-0 overflow-hidden bg-stone-100 relative">
-          {!imageError ? (
-            <img
-              src={imageUrl}
-              alt={ad.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              onError={() => setImageError(true)}
-              loading={isActive ? 'eager' : 'lazy'}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-stone-100 text-stone-400 text-xs">
-              Image unavailable
-            </div>
-          )}
+          <img
+            src={imgSrc}
+            alt={ad.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            onError={handleImageError}
+            loading={isActive ? 'eager' : 'lazy'}
+          />
         </div>
 
         <div className="flex-1 p-4 sm:p-5 flex flex-col justify-between min-w-0">

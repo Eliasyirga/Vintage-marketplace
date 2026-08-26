@@ -7,7 +7,7 @@
 import { useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import type { Advertisement } from '../../types/monetization'
-import { AdCarousel, AdvertiseHereCTA, SponsoredBadge, buildCloudinaryUrl } from './AdCarousel'
+import { AdCarousel, AdvertiseHereCTA, SponsoredBadge, buildCloudinaryUrl, getFallbackAdImageUrl } from './AdCarousel'
 import { AdvertisementSkeleton } from './AdvertisementSkeleton'
 import { useAdClick, useAdCtaLabel } from '../../hooks/useAdClick'
 
@@ -18,10 +18,16 @@ interface SidebarAdvertisementProps {
 }
 
 function SidebarSlide({ ad, isActive }: { ad: Advertisement; isActive: boolean }) {
-  const [imageError, setImageError] = useState(false)
+  const [imgSrc, setImgSrc] = useState<string>(() => buildCloudinaryUrl(ad, 400))
   const handleClick = useAdClick(ad)
   const ctaLabel = useAdCtaLabel(ad)
-  const imageUrl = buildCloudinaryUrl(ad, 400)
+
+  const handleImageError = () => {
+    const fallback = getFallbackAdImageUrl('MARKETPLACE_SIDEBAR')
+    if (imgSrc !== fallback) {
+      setImgSrc(fallback)
+    }
+  }
 
   const advertiserName =
     ad.advertiserName ||
@@ -46,19 +52,13 @@ function SidebarSlide({ ad, isActive }: { ad: Advertisement; isActive: boolean }
       </div>
 
       <div className="w-full aspect-[4/3] sm:aspect-square overflow-hidden bg-stone-100 relative">
-        {!imageError ? (
-          <img
-            src={imageUrl}
-            alt={ad.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            onError={() => setImageError(true)}
-            loading={isActive ? 'eager' : 'lazy'}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-stone-100 text-stone-400 text-xs">
-            Image unavailable
-          </div>
-        )}
+        <img
+          src={imgSrc}
+          alt={ad.title}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          onError={handleImageError}
+          loading={isActive ? 'eager' : 'lazy'}
+        />
       </div>
 
       <div className="p-3 space-y-2">

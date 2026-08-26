@@ -8,7 +8,7 @@
 import { useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import type { Advertisement } from '../../types/monetization'
-import { AdCarousel, AdvertiseHereCTA, SponsoredBadge, buildCloudinaryUrl } from './AdCarousel'
+import { AdCarousel, AdvertiseHereCTA, SponsoredBadge, buildCloudinaryUrl, getFallbackAdImageUrl } from './AdCarousel'
 import { AdvertisementSkeleton } from './AdvertisementSkeleton'
 import { useAdClick, useAdCtaLabel } from '../../hooks/useAdClick'
 
@@ -19,12 +19,16 @@ interface MarketplaceBannerAdProps {
 }
 
 function BannerHeroSlide({ ad, isActive }: { ad: Advertisement; isActive: boolean }) {
-  const [imageError, setImageError] = useState(false)
+  const [imgSrc, setImgSrc] = useState<string>(() => buildCloudinaryUrl(ad, 1400))
   const handleClick = useAdClick(ad)
   const ctaLabel = useAdCtaLabel(ad)
 
-  const desktopUrl = buildCloudinaryUrl(ad, 1400)
-  const mobileUrl = buildCloudinaryUrl(ad, 800)
+  const handleImageError = () => {
+    const fallback = getFallbackAdImageUrl('MARKETPLACE_BANNER')
+    if (imgSrc !== fallback) {
+      setImgSrc(fallback)
+    }
+  }
 
   return (
     <div
@@ -37,22 +41,13 @@ function BannerHeroSlide({ ad, isActive }: { ad: Advertisement; isActive: boolea
     >
       {/* Background image */}
       <div className="relative w-full aspect-[16/9] sm:aspect-[16/7] lg:aspect-[16/5] bg-stone-900">
-        {!imageError ? (
-          <picture>
-            <source media="(min-width: 768px)" srcSet={desktopUrl} />
-            <img
-              src={mobileUrl}
-              alt={ad.title}
-              className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700"
-              onError={() => setImageError(true)}
-              loading={isActive ? 'eager' : 'lazy'}
-            />
-          </picture>
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-stone-800 text-stone-500 text-sm">
-            Image unavailable
-          </div>
-        )}
+        <img
+          src={imgSrc}
+          alt={ad.title}
+          className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700"
+          onError={handleImageError}
+          loading={isActive ? 'eager' : 'lazy'}
+        />
 
         {/* Gradient overlay for readable text */}
         <div className="absolute inset-0 bg-gradient-to-r from-stone-950/85 via-stone-950/50 to-stone-950/20 sm:from-stone-950/80 sm:via-stone-950/40 sm:to-transparent" />

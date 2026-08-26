@@ -11,7 +11,7 @@ import React, { useState, useCallback } from 'react'
 import { ExternalLink, Store } from 'lucide-react'
 import type { Advertisement, AdPlacement } from '../../types/monetization'
 import { AdvertisementBadge } from './AdvertisementBadge'
-import { buildCloudinaryUrl, getAdCtaText } from '../../utils/advertisementUtils'
+import { buildCloudinaryUrl, getAdCtaText, getFallbackAdImageUrl } from '../../utils/advertisementUtils'
 import * as adService from '../../services/advertisement.service'
 
 interface AdvertisementCardProps {
@@ -21,7 +21,19 @@ interface AdvertisementCardProps {
 }
 
 export function AdvertisementCard({ ad, placement, className = '' }: AdvertisementCardProps) {
-  const [imageError, setImageError] = useState(false)
+  const [imgSrc, setImgSrc] = useState<string>(() =>
+    buildCloudinaryUrl(
+      ad,
+      placement === 'MARKETPLACE_SIDEBAR' ? 400 : placement === 'MARKETPLACE_FEATURED' ? 800 : 1200,
+    ),
+  )
+
+  const handleImageError = () => {
+    const fallback = getFallbackAdImageUrl(placement)
+    if (imgSrc !== fallback) {
+      setImgSrc(fallback)
+    }
+  }
 
   const advertiserName =
     ad.advertiserName ||
@@ -40,11 +52,6 @@ export function AdvertisementCard({ ad, placement, className = '' }: Advertiseme
     }
   }, [ad])
 
-  const imageUrl = buildCloudinaryUrl(
-    ad,
-    placement === 'MARKETPLACE_SIDEBAR' ? 400 : placement === 'MARKETPLACE_FEATURED' ? 800 : 1200,
-  )
-
   // ── Placement 1: MARKETPLACE_BANNER ──────────────────────────────────────────
   if (placement === 'MARKETPLACE_BANNER') {
     return (
@@ -58,19 +65,13 @@ export function AdvertisementCard({ ad, placement, className = '' }: Advertiseme
 
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between p-4 sm:p-6 lg:p-7 gap-5 sm:gap-6">
           <div className="w-full md:w-64 lg:w-72 aspect-[16/7] md:aspect-[16/8] shrink-0 rounded-2xl overflow-hidden bg-stone-800 border border-stone-700/50 relative">
-            {!imageError ? (
-              <img
-                src={imageUrl}
-                alt={ad.title}
-                loading="lazy"
-                onError={() => setImageError(true)}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-stone-800 text-stone-500 text-xs">
-                Image unavailable
-              </div>
-            )}
+            <img
+              src={imgSrc}
+              alt={ad.title}
+              loading="lazy"
+              onError={handleImageError}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
             <div className="absolute top-2 left-2">
               <AdvertisementBadge />
             </div>
@@ -130,19 +131,13 @@ export function AdvertisementCard({ ad, placement, className = '' }: Advertiseme
           </div>
 
           <div className="w-full aspect-[16/9] rounded-2xl overflow-hidden bg-stone-100 border border-stone-200 relative">
-            {!imageError ? (
-              <img
-                src={imageUrl}
-                alt={ad.title}
-                loading="lazy"
-                onError={() => setImageError(true)}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-stone-100 text-stone-400 text-xs">
-                Image unavailable
-              </div>
-            )}
+            <img
+              src={imgSrc}
+              alt={ad.title}
+              loading="lazy"
+              onError={handleImageError}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
           </div>
 
           <div className="space-y-1">
@@ -185,19 +180,13 @@ export function AdvertisementCard({ ad, placement, className = '' }: Advertiseme
       </div>
 
       <div className="w-full aspect-square rounded-xl overflow-hidden bg-stone-100 border border-stone-200 relative">
-        {!imageError ? (
-          <img
-            src={imageUrl}
-            alt={ad.title}
-            loading="lazy"
-            onError={() => setImageError(true)}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-stone-100 text-stone-400 text-xs">
-            Image unavailable
-          </div>
-        )}
+        <img
+          src={imgSrc}
+          alt={ad.title}
+          loading="lazy"
+          onError={handleImageError}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        />
       </div>
 
       <div className="space-y-1">

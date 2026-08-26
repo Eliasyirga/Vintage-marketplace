@@ -1,25 +1,52 @@
-import type { Advertisement } from '../types/monetization'
+import type { Advertisement, AdPlacement } from '../types/monetization'
 
-/** Cloud name from Vite env, or extracted once from a Cloudinary secure_url. */
-let cachedCloudName: string | null = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || null
+export const DEFAULT_CLOUDINARY_CLOUD_NAME = 'vmhpsvzq'
+
+/** Cloud name from Vite env, or extracted once from a Cloudinary secure_url, or fallback to project default. */
+let cachedCloudName: string | null =
+  (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string) || DEFAULT_CLOUDINARY_CLOUD_NAME
 
 function extractCloudNameFromUrl(url: string): string | null {
   const match = url.match(/res\.cloudinary\.com\/([^/]+)\//)
   return match?.[1] ?? null
 }
 
-function resolveCloudName(fallbackUrl?: string): string | null {
+function resolveCloudName(fallbackUrl?: string): string {
   if (cachedCloudName) return cachedCloudName
   if (fallbackUrl?.includes('res.cloudinary.com')) {
-    cachedCloudName = extractCloudNameFromUrl(fallbackUrl)
+    const extracted = extractCloudNameFromUrl(fallbackUrl)
+    if (extracted) {
+      cachedCloudName = extracted
+      return extracted
+    }
   }
-  return cachedCloudName
+  return DEFAULT_CLOUDINARY_CLOUD_NAME
 }
 
 /** Backend API origin (without /api suffix) — used to resolve local upload paths. */
-function resolveApiOrigin(): string {
-  const apiUrl = import.meta.env.VITE_API_URL || 'https://vintage-marketplace-6.onrender.com/api'
+export function resolveApiOrigin(): string {
+  const apiUrl =
+    (import.meta.env.VITE_API_URL as string) || 'https://vintage-marketplace-6.onrender.com/api'
   return apiUrl.replace(/\/api\/?$/, '')
+}
+
+/** Curated high-res vintage ad fallback images by placement */
+export const AD_PLACEMENT_FALLBACKS: Record<AdPlacement | 'DEFAULT', string> = {
+  MARKETPLACE_BANNER:
+    'https://images.unsplash.com/photo-1472851294608-062f824d29cc?auto=format&fit=crop&w=1400&q=85',
+  MARKETPLACE_FEATURED:
+    'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=800&q=85',
+  MARKETPLACE_SIDEBAR:
+    'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=500&q=85',
+  DEFAULT:
+    'https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&w=800&q=85',
+}
+
+export function getFallbackAdImageUrl(placement?: AdPlacement | string): string {
+  if (placement && placement in AD_PLACEMENT_FALLBACKS) {
+    return AD_PLACEMENT_FALLBACKS[placement as AdPlacement]
+  }
+  return AD_PLACEMENT_FALLBACKS.DEFAULT
 }
 
 function isCloudinaryAsset(ad: Advertisement): boolean {
@@ -29,16 +56,24 @@ function isCloudinaryAsset(ad: Advertisement): boolean {
 }
 
 function isLocalUploadUrl(url: string): boolean {
-  return url.includes('/uploads/') && !url.includes('cloudinary.com')
+  return (
+    (url.includes('/uploads/') || url.includes('localhost:5000')) &&
+    !url.includes('cloudinary.com')
+  )
 }
 
 /** Normalize local or relative upload URLs to an absolute URL the browser can fetch. */
 export function resolveAdImageUrl(url: string): string {
-  if (!url) return url
+  if (!url) return ''
+
+  if (url.includes('localhost:5000/uploads/')) {
+    const relativePath = url.replace(/https?:\/\/localhost:5000/, '')
+    if (import.meta.env.DEV) return relativePath
+    return `${resolveApiOrigin()}${relativePath}`
+  }
 
   const uploadsMatch = url.match(/(\/uploads\/.*)$/)
   if (uploadsMatch) {
-    // In dev, serve via Vite proxy (/uploads → API server)
     if (import.meta.env.DEV) return uploadsMatch[1]
     return `${resolveApiOrigin()}${uploadsMatch[1]}`
   }
@@ -51,34 +86,46 @@ export function resolveAdImageUrl(url: string): string {
 /**
  * Build a display URL for an advertisement image.
  * - Cloudinary assets get optimized delivery transforms
+ * - Public IDs are automatically resolved with default cloud name
  * - Local disk uploads are served from the API origin (/uploads/...)
- * - External URLs (e.g. seed data) are returned unchanged
+ * - Fallbacks provide guaranteed display for existing ads
  */
 export function buildCloudinaryUrl(ad: Advertisement, width: number = 1200): string {
   const image = ad.image?.trim()
-  if (!image) return ''
+  const publicId = ad.imagePublicId?.trim()
+  const transforms = `f_auto,q_auto,w_${width},c_fill`
 
-  // Local disk uploads must never be routed through Cloudinary
+  // 1. If public ID exists, construct Cloudinary URL directly
+  if (publicId) {
+    const cloudName = resolveCloudName(image)
+    return `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${publicId}`
+  }
+
+  if (!image) {
+    return getFallbackAdImageUrl(ad.placement)
+  }
+
+  // 2. Local disk uploads
   if (isLocalUploadUrl(image)) {
     return resolveAdImageUrl(image)
   }
 
-  const transforms = `f_auto,q_auto,w_${width},c_fill`
-
+  // 3. Cloudinary full URL
   if (isCloudinaryAsset(ad)) {
-    if (ad.imagePublicId) {
-      const cloudName = resolveCloudName(image)
-      if (cloudName) {
-        return `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${ad.imagePublicId}`
-      }
-    }
-
     if (image.includes('cloudinary.com') && image.includes('/upload/')) {
-      return image.replace('/upload/', `/upload/${transforms}/`)
+      if (!image.includes('/f_auto,q_auto')) {
+        return image.replace('/upload/', `/upload/${transforms}/`)
+      }
+      return image
     }
   }
 
-  return image
+  // 4. Absolute external URLs (e.g. Unsplash or direct HTTPS)
+  if (image.startsWith('http://') || image.startsWith('https://')) {
+    return image
+  }
+
+  return resolveAdImageUrl(image)
 }
 
 /** Derive CTA label from the advertisement destination URL. */
