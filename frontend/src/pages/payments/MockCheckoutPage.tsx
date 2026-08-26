@@ -160,16 +160,16 @@ export default function MockCheckoutPage() {
               </div>
               <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
                 <button
-                  onClick={() => navigate('/seller/monetization')}
+                  onClick={() => navigate('/advertise/my-ads')}
                   className="py-2.5 px-5 bg-amber-500 hover:bg-amber-600 text-stone-950 font-semibold rounded-xl text-sm transition"
                 >
-                  Go to Monetization Hub
+                  My Advertisements
                 </button>
                 <button
-                  onClick={() => navigate('/my-listings')}
+                  onClick={() => navigate('/seller/monetization')}
                   className="py-2.5 px-5 bg-stone-800 hover:bg-stone-700 text-white font-medium rounded-xl text-sm transition"
                 >
-                  View My Listings
+                  Monetization Hub
                 </button>
               </div>
             </div>
