@@ -7,6 +7,11 @@ const router = Router()
 
 router.use(requireAuth)
 
+// ── Blocking ──────────────────────────────────────────────────────────────────
+router.get('/blocked', conversationController.getBlockedUsers)
+router.post('/block/:userId', conversationController.blockUser)
+router.delete('/block/:userId', conversationController.unblockUser)
+
 // ── Conversation CRUD ─────────────────────────────────────────────────────────
 router.get('/', conversationController.getUserConversations)
 router.post('/', conversationController.createOrGetConversation)
@@ -21,10 +26,5 @@ router.post('/:id/read', conversationController.markRead)
 // ── Reporting ─────────────────────────────────────────────────────────────────
 router.post('/:id/report', conversationController.reportConversation)
 router.post('/:id/messages/:messageId/report', conversationController.reportMessage)
-
-// ── Blocking ──────────────────────────────────────────────────────────────────
-router.get('/blocked', conversationController.getBlockedUsers)
-router.post('/block/:userId', conversationController.blockUser)
-router.delete('/block/:userId', conversationController.unblockUser)
 
 export default router
