@@ -3,7 +3,7 @@ import { Plan } from '../models'
 import { sequelize } from '../config/database'
 
 export const AD_PLANS = [
-  // ── HOME_TOP Plans ──
+  // ── MARKETPLACE_BANNER Plans ──
   {
     name: 'Home Top Banner - 3 Days',
     type: 'ADVERTISEMENT' as const,
@@ -12,7 +12,8 @@ export const AD_PLANS = [
     duration_days: 3,
     billing_cycle: 'ONE_TIME' as const,
     features: [
-      'HOME_TOP', // Used by frontend/backend to associate placement
+      'MARKETPLACE_BANNER',
+      'HOME_TOP',
       'Premium top-of-homepage wide banner placement',
       'Maximum visibility to every marketplace visitor',
       'Direct link to your store, listing, or external site',
@@ -29,6 +30,7 @@ export const AD_PLANS = [
     duration_days: 7,
     billing_cycle: 'ONE_TIME' as const,
     features: [
+      'MARKETPLACE_BANNER',
       'HOME_TOP',
       'Full week premium top-of-homepage wide banner',
       'Featured placement above all product categories',
@@ -46,6 +48,7 @@ export const AD_PLANS = [
     duration_days: 14,
     billing_cycle: 'ONE_TIME' as const,
     features: [
+      'MARKETPLACE_BANNER',
       'HOME_TOP',
       '2-week extended top-of-homepage placement',
       'High-conversion brand showcase for businesses',
@@ -63,6 +66,7 @@ export const AD_PLANS = [
     duration_days: 30,
     billing_cycle: 'ONE_TIME' as const,
     features: [
+      'MARKETPLACE_BANNER',
       'HOME_TOP',
       'Full month top banner domination',
       'Unmatched reach across all Bonda traffic',
@@ -72,7 +76,7 @@ export const AD_PLANS = [
     sort_order: 13,
   },
 
-  // ── MARKETPLACE_MIDDLE Plans ──
+  // ── MARKETPLACE_FEATURED Plans ──
   {
     name: 'Marketplace In-Feed - 3 Days',
     type: 'ADVERTISEMENT' as const,
@@ -81,6 +85,7 @@ export const AD_PLANS = [
     duration_days: 3,
     billing_cycle: 'ONE_TIME' as const,
     features: [
+      'MARKETPLACE_FEATURED',
       'MARKETPLACE_MIDDLE',
       'Native in-feed ad embedded between product search results',
       'Reaches high-intent shoppers actively browsing products',
@@ -98,6 +103,7 @@ export const AD_PLANS = [
     duration_days: 7,
     billing_cycle: 'ONE_TIME' as const,
     features: [
+      'MARKETPLACE_FEATURED',
       'MARKETPLACE_MIDDLE',
       '1 week native in-feed placement in browse & search grids',
       'Targeted directly at vintage & second-hand buyers',
@@ -115,6 +121,7 @@ export const AD_PLANS = [
     duration_days: 14,
     billing_cycle: 'ONE_TIME' as const,
     features: [
+      'MARKETPLACE_FEATURED',
       'MARKETPLACE_MIDDLE',
       '2-week native in-feed sponsored card',
       'Continuous exposure in category and search results',
@@ -131,6 +138,7 @@ export const AD_PLANS = [
     duration_days: 30,
     billing_cycle: 'ONE_TIME' as const,
     features: [
+      'MARKETPLACE_FEATURED',
       'MARKETPLACE_MIDDLE',
       'Full month native in-feed presence in marketplace results',
       'Maximum repeat buyer exposure',
@@ -140,18 +148,19 @@ export const AD_PLANS = [
     sort_order: 23,
   },
 
-  // ── MARKETPLACE_BOTTOM Plans ──
+  // ── MARKETPLACE_SIDEBAR Plans ──
   {
-    name: 'Marketplace Bottom Spotlight - 3 Days',
+    name: 'Marketplace Sidebar - 3 Days',
     type: 'ADVERTISEMENT' as const,
     price: '150.00',
     currency: 'ETB',
     duration_days: 3,
     billing_cycle: 'ONE_TIME' as const,
     features: [
+      'MARKETPLACE_SIDEBAR',
       'MARKETPLACE_BOTTOM',
-      'Prominent full-width promotional banner at bottom of catalog',
-      'Catches engaged buyers at the end of their search journey',
+      'Prominent desktop sidebar banner beside search filters',
+      'Catches engaged buyers as they refine search results',
       'Sponsored call-to-action button to your business',
       'Impression and click tracking',
     ],
@@ -159,16 +168,17 @@ export const AD_PLANS = [
     sort_order: 30,
   },
   {
-    name: 'Marketplace Bottom Spotlight - 7 Days',
+    name: 'Marketplace Sidebar - 7 Days',
     type: 'ADVERTISEMENT' as const,
     price: '300.00',
     currency: 'ETB',
     duration_days: 7,
     billing_cycle: 'ONE_TIME' as const,
     features: [
+      'MARKETPLACE_SIDEBAR',
       'MARKETPLACE_BOTTOM',
-      '1 week bottom-of-page promotional highlight',
-      'High conversion footer spotlight above recommendations',
+      '1 week sidebar promotional highlight',
+      'High conversion sidebar spotlight beside marketplace listings',
       'Direct link to website or promotion',
       'Full metrics and performance tracking',
     ],
@@ -176,31 +186,33 @@ export const AD_PLANS = [
     sort_order: 31,
   },
   {
-    name: 'Marketplace Bottom Spotlight - 14 Days',
+    name: 'Marketplace Sidebar - 14 Days',
     type: 'ADVERTISEMENT' as const,
     price: '550.00',
     currency: 'ETB',
     duration_days: 14,
     billing_cycle: 'ONE_TIME' as const,
     features: [
+      'MARKETPLACE_SIDEBAR',
       'MARKETPLACE_BOTTOM',
-      '2-week bottom banner spotlight',
-      'Consistent bottom-of-catalog brand recall',
+      '2-week sidebar banner spotlight',
+      'Consistent brand recall across desktop browsing',
       'Analytics & engagement tracking',
     ],
     is_active: true,
     sort_order: 32,
   },
   {
-    name: 'Marketplace Bottom Spotlight - 30 Days',
+    name: 'Marketplace Sidebar - 30 Days',
     type: 'ADVERTISEMENT' as const,
     price: '1000.00',
     currency: 'ETB',
     duration_days: 30,
     billing_cycle: 'ONE_TIME' as const,
     features: [
+      'MARKETPLACE_SIDEBAR',
       'MARKETPLACE_BOTTOM',
-      'Full month bottom spotlight banner',
+      'Full month sidebar spotlight banner',
       'Budget-friendly long term presence',
       'Detailed engagement reporting',
     ],
