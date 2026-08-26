@@ -183,7 +183,7 @@ export default function CheckoutPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-100 flex flex-col font-sans">
+      <div className="min-h-screen bg-stone-50 flex flex-col">
         <WorkspaceHeader
           title="Secure Checkout"
           backUrl={`/listings/${listingId || ''}`}
@@ -199,7 +199,7 @@ export default function CheckoutPage() {
 
   if (!eligibilityData) {
     return (
-      <div className="min-h-screen bg-stone-100 flex flex-col font-sans">
+      <div className="min-h-screen bg-stone-50 flex flex-col">
         <WorkspaceHeader
           title="Secure Checkout"
           backUrl="/marketplace"
@@ -228,7 +228,7 @@ export default function CheckoutPage() {
   const totalAmount = eligibilityData.listing.price + effectiveDeliveryFee
 
   return (
-    <div className="min-h-screen bg-stone-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-stone-50 flex flex-col">
       <WorkspaceHeader
         title="Secure Checkout"
         subtitle={eligibilityData.listing.title}
