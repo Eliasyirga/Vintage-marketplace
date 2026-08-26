@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { X, ShieldCheck, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import { X, ShieldCheck, AlertCircle, Loader2, CheckCircle2, Lock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import * as paymentService from '../../services/payment.service'
-import type { PaymentProviderName, PaymentPurpose } from '../../types/monetization'
+import type { PaymentPurpose } from '../../types/monetization'
 
 interface CheckoutModalProps {
   isOpen: boolean
@@ -36,8 +35,6 @@ export function CheckoutModal({
   verificationType,
   onSuccess,
 }: CheckoutModalProps) {
-  const navigate = useNavigate()
-  const [selectedProvider, setSelectedProvider] = useState<PaymentProviderName>('MOCK')
   const [isLoading, setIsLoading] = useState(false)
 
   if (!isOpen) return null
@@ -48,28 +45,23 @@ export function CheckoutModal({
       const res = await paymentService.initializePayment({
         planId,
         purpose,
-        provider: selectedProvider,
+        provider: 'CHAPA',
         listingId,
         advertisementId,
         transactionId,
         verificationType,
-        returnUrl: window.location.href,
+        returnUrl: `${window.location.origin}/payment/processing`,
       })
 
-      if (res.mode === 'MOCK_DEV') {
-        toast.success('Test payment initialized! Redirecting to sandbox checkout...')
-        onSuccess?.()
-        onClose()
-        // Extract query params from checkoutUrl
-        const url = new URL(res.checkoutUrl)
-        navigate(`/checkout/mock${url.search}`)
-      } else {
-        onSuccess?.()
-        // Real provider gateway redirect
+      onSuccess?.()
+      if (res.checkoutUrl) {
+        toast.success('Redirecting to secure Chapa payment...')
         window.location.href = res.checkoutUrl
+      } else {
+        throw new Error('No checkout URL received from payment gateway.')
       }
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Failed to initialize payment checkout.')
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to initialize payment checkout.')
     } finally {
       setIsLoading(false)
     }
@@ -111,94 +103,29 @@ export function CheckoutModal({
             </div>
           </div>
 
-          {/* Payment Method Selector */}
+          {/* Payment Method - Chapa Hosted */}
           <div>
             <label className="block text-sm font-medium text-stone-300 mb-3">
-              Select Payment Method:
+              Payment Method:
             </label>
-            <div className="grid grid-cols-1 gap-3">
-              {/* Development Sandbox */}
-              <button
-                type="button"
-                onClick={() => setSelectedProvider('MOCK')}
-                className={`flex items-center justify-between p-3.5 rounded-xl border transition text-left ${
-                  selectedProvider === 'MOCK'
-                    ? 'border-amber-500 bg-amber-500/10 text-white'
-                    : 'border-stone-800 bg-stone-950 text-stone-300 hover:border-stone-700'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-stone-800 flex items-center justify-center font-bold text-amber-500 text-sm">
-                    DEV
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm">Development Sandbox Payment</span>
-                      <span className="text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded font-mono">
-                        Safe Dev Mode
-                      </span>
-                    </div>
-                    <p className="text-xs text-stone-400 mt-0.5">
-                      Instant test simulation with zero real payment credentials required.
-                    </p>
-                  </div>
+            <div className="p-4 rounded-xl border border-emerald-700/60 bg-emerald-950/20 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-lg bg-emerald-600 border border-emerald-500 flex items-center justify-center font-black text-white text-xs tracking-wider shadow-sm">
+                  CHAPA
                 </div>
-                {selectedProvider === 'MOCK' && (
-                  <CheckCircle2 className="w-5 h-5 text-amber-500 shrink-0 ml-2" />
-                )}
-              </button>
-
-              {/* Chapa Gateway */}
-              <button
-                type="button"
-                onClick={() => setSelectedProvider('CHAPA')}
-                className={`flex items-center justify-between p-3.5 rounded-xl border transition text-left ${
-                  selectedProvider === 'CHAPA'
-                    ? 'border-amber-500 bg-amber-500/10 text-white'
-                    : 'border-stone-800 bg-stone-950 text-stone-300 hover:border-stone-700'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-900/40 border border-emerald-700/50 flex items-center justify-center font-bold text-emerald-400 text-xs">
-                    CHAPA
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm text-white">Chapa Secure Payment</span>
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-mono font-bold">
+                      Direct Hosted
+                    </span>
                   </div>
-                  <div>
-                    <span className="font-semibold text-sm">Chapa (Cards, Banks & Wallets)</span>
-                    <p className="text-xs text-stone-400 mt-0.5">
-                      Pay via CBE Birr, Telebirr, Awash, or Ethiopian Debit Cards.
-                    </p>
-                  </div>
+                  <p className="text-xs text-stone-400 mt-0.5">
+                    Pay via Telebirr, CBE Birr, Awash Bank, or Ethiopian Debit Cards.
+                  </p>
                 </div>
-                {selectedProvider === 'CHAPA' && (
-                  <CheckCircle2 className="w-5 h-5 text-amber-500 shrink-0 ml-2" />
-                )}
-              </button>
-
-              {/* Telebirr Direct */}
-              <button
-                type="button"
-                onClick={() => setSelectedProvider('TELEBIRR')}
-                className={`flex items-center justify-between p-3.5 rounded-xl border transition text-left ${
-                  selectedProvider === 'TELEBIRR'
-                    ? 'border-amber-500 bg-amber-500/10 text-white'
-                    : 'border-stone-800 bg-stone-950 text-stone-300 hover:border-stone-700'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-900/40 border border-blue-700/50 flex items-center justify-center font-bold text-blue-400 text-xs">
-                    TELEBIRR
-                  </div>
-                  <div>
-                    <span className="font-semibold text-sm">Telebirr Mobile Money</span>
-                    <p className="text-xs text-stone-400 mt-0.5">
-                      Pay directly via Ethio Telecom Telebirr prompt.
-                    </p>
-                  </div>
-                </div>
-                {selectedProvider === 'TELEBIRR' && (
-                  <CheckCircle2 className="w-5 h-5 text-amber-500 shrink-0 ml-2" />
-                )}
-              </button>
+              </div>
+              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 ml-2" />
             </div>
           </div>
 
@@ -206,39 +133,46 @@ export function CheckoutModal({
           <div className="flex items-start gap-2.5 p-3 rounded-lg bg-stone-950 text-xs text-stone-400 border border-stone-800/60">
             <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
             <span>
-              All transactions are encrypted and verified server-side. Entitlements activate
-              automatically upon confirmed provider callback.
+              All transactions are encrypted and verified server-side with Chapa. Your features or
+              entitlements will be activated instantly upon payment confirmation.
             </span>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-stone-800 bg-stone-900/50">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isLoading}
-            className="px-4 py-2.5 text-sm font-medium text-stone-400 hover:text-white rounded-xl hover:bg-stone-800 transition"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleCheckout}
-            disabled={isLoading}
-            className="flex items-center gap-2 px-6 py-2.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-stone-950 text-sm font-semibold rounded-xl shadow-lg shadow-amber-500/20 transition disabled:opacity-50"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Processing...</span>
-              </>
-            ) : (
-              <span>Proceed to Payment</span>
-            )}
-          </button>
+        <div className="flex items-center justify-between p-6 border-t border-stone-800 bg-stone-900/50">
+          <div className="flex items-center gap-1.5 text-xs text-stone-500 font-mono">
+            <Lock className="w-3.5 h-3.5 text-stone-400" />
+            <span>256-Bit SSL Encrypted</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isLoading}
+              className="px-4 py-2.5 text-sm font-medium text-stone-400 hover:text-white rounded-xl hover:bg-stone-800 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleCheckout}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-emerald-950/40 transition disabled:opacity-50"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Connecting...</span>
+                </>
+              ) : (
+                <span>Continue with Chapa</span>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
   )
 }
+

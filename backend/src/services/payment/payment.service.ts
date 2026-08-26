@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import { sequelize } from '../../config/database'
+import { env } from '../../config/env'
 import {
   Payment,
   Plan,
@@ -25,7 +26,7 @@ import { sendOrderNotification } from '../orderNotification.service'
 export interface CreatePaymentInput {
   planId?: string
   purpose: PaymentPurpose
-  provider: PaymentProviderName
+  provider?: PaymentProviderName
   listingId?: string
   advertisementId?: string
   transactionId?: string
@@ -142,11 +143,14 @@ export async function createPayment(
     verificationType: input.verificationType ?? null,
   }
 
-  // 4. Create Payment Record (Server-Authoritative)
+  // 4. Resolve provider and Create Payment Record (Server-Authoritative)
+  const resolvedProvider: PaymentProviderName =
+    input.provider === 'MOCK' && env.isDevelopment ? 'MOCK' : 'CHAPA'
+
   const payment = await Payment.create({
     user_id: userId,
     reference,
-    provider: input.provider,
+    provider: resolvedProvider,
     amount: amount.toFixed(2),
     currency: 'ETB',
     purpose: input.purpose,
@@ -163,7 +167,13 @@ export async function createPayment(
   }
 
   // 5. Initialize with Payment Provider
-  const provider = getPaymentProvider(input.provider)
+  const clientBase = (env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, '')
+  const apiBase = (env.API_PUBLIC_URL || 'http://localhost:5000').replace(/\/+$/, '')
+
+  const returnUrl = input.returnUrl || `${clientBase}/payment/processing?ref=${encodeURIComponent(payment.reference)}`
+  const callbackUrl = input.callbackUrl || `${apiBase}/api/payments/chapa/callback`
+
+  const provider = getPaymentProvider(resolvedProvider)
   const initResult = await provider.initializePayment({
     paymentId: payment.id,
     reference: payment.reference,
@@ -176,8 +186,8 @@ export async function createPayment(
       phone: user.phone,
     },
     purpose: plan ? `${plan.name} - Vintage Marketplace` : `${input.purpose} - Vintage Marketplace`,
-    returnUrl: input.returnUrl,
-    callbackUrl: input.callbackUrl,
+    returnUrl,
+    callbackUrl,
     metadata,
   })
 
@@ -210,6 +220,20 @@ export async function verifyAndProcessPayment(
   if (!verifyResult.isVerified || verifyResult.status !== 'SUCCESS') {
     await payment.update({ status: 'FAILED' })
     return { payment, activated: false }
+  }
+
+  // Verify amount matches database amount (allow small rounding difference)
+  if (
+    verifyResult.amount > 0 &&
+    Math.abs(verifyResult.amount - Number(payment.amount)) > 0.5
+  ) {
+    console.error(
+      `❌ [Payment] Amount mismatch for ${reference}: expected ${payment.amount}, got ${verifyResult.amount}`,
+    )
+    await payment.update({ status: 'FAILED' })
+    throw Object.assign(new Error('Payment verification failed due to amount mismatch.'), {
+      statusCode: 400,
+    })
   }
 
   // Verified! Execute all entitlement activations inside a database transaction
@@ -407,6 +431,8 @@ export async function verifyAndProcessPayment(
             activated = true
           }
         }
+        break
+
       case 'ORDER_PURCHASE':
       case 'DELIVERY':
         const targetOrderId = meta.orderId || meta.transactionId

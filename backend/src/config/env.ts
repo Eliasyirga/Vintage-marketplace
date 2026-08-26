@@ -77,6 +77,16 @@ export const env = {
     )
   },
 
+  // ── Chapa Payment Gateway ─────────────────────────────────────────────────
+  CHAPA_SECRET_KEY: optional('CHAPA_SECRET_KEY', ''),
+  CHAPA_PUBLIC_KEY: optional('CHAPA_PUBLIC_KEY', ''),
+  CHAPA_ENCRYPTION_KEY: optional('CHAPA_ENCRYPTION_KEY', ''),
+  CHAPA_BASE_URL: optional('CHAPA_BASE_URL', 'https://api.chapa.co').replace(/\/+$/, ''),
+  CHAPA_MODE: optional('CHAPA_MODE', 'test'),
+  get CHAPA_ENABLED() {
+    return !!process.env['CHAPA_SECRET_KEY']
+  },
+
   get isProduction() { return this.NODE_ENV === 'production' },
   get isDevelopment() { return this.NODE_ENV === 'development' },
 

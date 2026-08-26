@@ -32,6 +32,10 @@ import SellerMonetizationPage from './pages/seller/SellerMonetizationPage'
 import SellerAnalyticsPage from './pages/seller/SellerAnalyticsPage'
 import PaymentHistoryPage from './pages/account/PaymentHistoryPage'
 import MockCheckoutPage from './pages/payments/MockCheckoutPage'
+import PaymentProcessingPage from './pages/payments/PaymentProcessingPage'
+import PaymentSuccessPage from './pages/payments/PaymentSuccessPage'
+import PaymentFailedPage from './pages/payments/PaymentFailedPage'
+import PaymentCancelledPage from './pages/payments/PaymentCancelledPage'
 import AdvertisePage from './pages/advertise/AdvertisePage'
 import CreateAdvertisementPage from './pages/advertise/CreateAdvertisementPage'
 import MyAdvertisementsPage from './pages/advertise/MyAdvertisementsPage'
@@ -180,6 +184,12 @@ function App() {
           <Route path="/checkout/:listingId" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
           <Route path="/orders/:orderId" element={<ProtectedRoute><OrderDetailsPage /></ProtectedRoute>} />
           <Route path="/checkout/mock" element={<ProtectedRoute><MockCheckoutPage /></ProtectedRoute>} />
+
+          {/* ── Chapa Payment Gateway routes ─────────────────────────── */}
+          <Route path="/payment/processing" element={<ProtectedRoute><PaymentProcessingPage /></ProtectedRoute>} />
+          <Route path="/payment/success" element={<ProtectedRoute><PaymentSuccessPage /></ProtectedRoute>} />
+          <Route path="/payment/failed" element={<ProtectedRoute><PaymentFailedPage /></ProtectedRoute>} />
+          <Route path="/payment/cancelled" element={<ProtectedRoute><PaymentCancelledPage /></ProtectedRoute>} />
 
           {/* ── Admin routes (require ADMIN role) ────────────────────── */}
           <Route

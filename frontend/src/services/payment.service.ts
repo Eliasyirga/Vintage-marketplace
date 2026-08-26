@@ -4,10 +4,11 @@ import type { Payment, PaymentProviderName, PaymentPurpose } from '../types/mone
 export interface InitializePaymentParams {
   planId?: string
   purpose: PaymentPurpose
-  provider: PaymentProviderName
+  provider?: PaymentProviderName
   listingId?: string
   advertisementId?: string
   transactionId?: string
+  orderId?: string
   verificationType?: 'NATIONAL_ID' | 'FACE' | 'BUSINESS'
   returnUrl?: string
   callbackUrl?: string

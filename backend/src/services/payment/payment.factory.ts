@@ -1,27 +1,27 @@
+import { env } from '../../config/env'
 import type { PaymentProviderName } from '../../types/monetization.types'
 import type { PaymentProvider } from './PaymentProvider'
-import { MockPaymentProvider } from './MockPaymentProvider'
 import { ChapaPaymentProvider } from './ChapaPaymentProvider'
-import { TelebirrPaymentProvider } from './TelebirrPaymentProvider'
+import { MockPaymentProvider } from './MockPaymentProvider'
 
-export function getPaymentProvider(providerName: PaymentProviderName): PaymentProvider {
-  switch (providerName) {
-    case 'CHAPA':
-      if (process.env.CHAPA_SECRET_KEY) {
-        return new ChapaPaymentProvider()
-      }
-      console.warn('⚠️ CHAPA_SECRET_KEY not set. Using MockPaymentProvider fallback for testing.')
+export function getPaymentProvider(providerName?: PaymentProviderName): PaymentProvider {
+  // Chapa is the official payment provider for Vintage Marketplace
+  if (providerName === 'CHAPA' || !providerName) {
+    if (env.CHAPA_SECRET_KEY) {
+      return new ChapaPaymentProvider()
+    }
+    if (env.isDevelopment) {
+      console.warn('⚠️ [Payment] CHAPA_SECRET_KEY not set in dev. Using MockPaymentProvider fallback.')
       return new MockPaymentProvider()
-
-    case 'TELEBIRR':
-      if (process.env.TELEBIRR_APP_ID && process.env.TELEBIRR_APP_KEY) {
-        return new TelebirrPaymentProvider()
-      }
-      console.warn('⚠️ TELEBIRR credentials not set. Using MockPaymentProvider fallback for testing.')
-      return new MockPaymentProvider()
-
-    case 'MOCK':
-    default:
-      return new MockPaymentProvider()
+    }
+    return new ChapaPaymentProvider()
   }
+
+  // Developer sandbox mode only
+  if (providerName === 'MOCK' && env.isDevelopment) {
+    return new MockPaymentProvider()
+  }
+
+  return new ChapaPaymentProvider()
 }
+

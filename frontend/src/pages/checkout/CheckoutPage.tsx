@@ -33,7 +33,6 @@ export default function CheckoutPage() {
   // Form State
   const [fulfillmentMethod, setFulfillmentMethod] = useState<FulfillmentMethod>('DELIVERY')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('PLATFORM_PAYMENT')
-  const [paymentProvider, setPaymentProvider] = useState<'MOCK' | 'CHAPA' | 'TELEBIRR'>('MOCK')
 
   const [deliveryInfo, setDeliveryInfo] = useState<DeliveryInput>({
     fullName: user?.fullName || '',
@@ -159,14 +158,14 @@ export default function CheckoutPage() {
         listingId,
         fulfillmentMethod,
         paymentMethod,
-        provider: paymentProvider,
+        provider: 'CHAPA',
         deliveryInfo: fulfillmentMethod === 'DELIVERY' ? deliveryInfo : undefined,
         meetingInfo: fulfillmentMethod === 'MEET_IN_PERSON' ? meetingInfo : undefined,
       })
 
-      toast.success('Order placed successfully!')
+      toast.success('Order initialized! Redirecting to secure Chapa checkout...')
 
-      // If sandbox mock payment, forward to mock checkout sandbox
+      // Redirect to Chapa hosted payment checkout
       if (
         paymentMethod === 'PLATFORM_PAYMENT' &&
         result.paymentInit?.checkoutUrl
@@ -301,8 +300,6 @@ export default function CheckoutPage() {
               fulfillmentMethod={fulfillmentMethod}
               selectedMethod={paymentMethod}
               onSelectMethod={setPaymentMethod}
-              selectedProvider={paymentProvider}
-              onSelectProvider={setPaymentProvider}
             />
           </div>
 

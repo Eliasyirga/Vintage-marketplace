@@ -8,27 +8,29 @@ export async function initializePayment(req: Request, res: Response, next: NextF
     const {
       planId,
       purpose,
-      provider,
+      provider = 'CHAPA',
       listingId,
       advertisementId,
       transactionId,
+      orderId,
       verificationType,
       returnUrl,
       callbackUrl,
     } = req.body
 
-    if (!purpose || !provider) {
-      res.status(400).json({ success: false, message: 'Purpose and provider are required.' })
+    if (!purpose) {
+      res.status(400).json({ success: false, message: 'Payment purpose is required.' })
       return
     }
 
     const { payment, initResult } = await paymentService.createPayment(userId, {
       planId,
       purpose,
-      provider,
+      provider: provider === 'MOCK' ? 'MOCK' : 'CHAPA',
       listingId,
       advertisementId,
       transactionId,
+      orderId,
       verificationType,
       returnUrl,
       callbackUrl,

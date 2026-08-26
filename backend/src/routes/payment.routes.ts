@@ -14,7 +14,11 @@ router.get('/verify/:reference', requireAuth, paymentController.verifyPayment)
 // My Payment history (User)
 router.get('/my-history', requireAuth, paymentController.getMyPayments)
 
-// Provider Webhook Endpoint (No direct user auth; verified by signature/payload server-side)
+// Provider Webhook / Callback Endpoint (No direct user auth; verified server-side)
+router.post('/chapa/callback', (req, res, next) => {
+  ;(req.params as any).provider = 'CHAPA'
+  paymentController.handleWebhook(req, res, next)
+})
 router.post('/webhook/:provider', paymentController.handleWebhook)
 
 // Development/Sandbox Payment Simulator

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react'
-import { useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
 import {
   ArrowLeft,
   ArrowRight,
@@ -7,7 +7,6 @@ import {
   ExternalLink,
   Layers,
   Flame,
-  CreditCard,
   Lock,
   Upload,
   Image as ImageIcon,
@@ -52,7 +51,6 @@ const PLACEMENT_OPTIONS: {
 ]
 
 export default function CreateAdvertisementPage() {
-  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
   const initialPlacement =
@@ -72,7 +70,6 @@ export default function CreateAdvertisementPage() {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [paymentProvider, setPaymentProvider] = useState<'MOCK' | 'CHAPA' | 'TELEBIRR'>('MOCK')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -168,23 +165,21 @@ export default function CreateAdvertisementPage() {
         placement,
       })
 
-      // 2. Initialize Payment via centralized payment service
+      // 2. Initialize Payment via centralized payment service with Chapa
       const paymentRes = await paymentService.initializePayment({
         purpose: 'ADVERTISEMENT',
         planId: selectedPlan.id,
         advertisementId: ad.id,
-        provider: paymentProvider,
-        returnUrl: `${window.location.origin}/advertise/my-ads?adCreated=true`,
+        provider: 'CHAPA',
+        returnUrl: `${window.location.origin}/payment/processing`,
       })
 
-      toast.success('Advertisement creative saved! Proceeding to payment...')
+      toast.success('Advertisement creative saved! Redirecting to Chapa payment...')
 
-      if (paymentProvider === 'MOCK') {
-        navigate(`/checkout/mock?ref=${paymentRes.payment.reference}`)
-      } else if (paymentRes.checkoutUrl) {
+      if (paymentRes.checkoutUrl) {
         window.location.href = paymentRes.checkoutUrl
       } else {
-        navigate(`/checkout/mock?ref=${paymentRes.payment.reference}`)
+        throw new Error('Payment gateway did not return a checkout URL.')
       }
     } catch (err: any) {
       toast.error(
@@ -577,59 +572,31 @@ export default function CreateAdvertisementPage() {
                 </div>
               </div>
 
-              {/* Payment Provider Selection */}
+              {/* Payment Method - Chapa Hosted */}
               <div className="space-y-3">
                 <label className="block text-xs font-black uppercase tracking-wider text-stone-500">
-                  Select Payment Method
+                  Payment Method
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {[
-                    {
-                      id: 'MOCK' as const,
-                      name: 'Instant Sandbox Test',
-                      sub: 'Instant verification for demo & QA',
-                    },
-                    {
-                      id: 'CHAPA' as const,
-                      name: 'Chapa (Cards / CBEBirr)',
-                      sub: 'Visa, Mastercard & CBEBirr',
-                    },
-                    {
-                      id: 'TELEBIRR' as const,
-                      name: 'Telebirr',
-                      sub: 'Official Ethio Telecom Gateway',
-                    },
-                  ].map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => setPaymentProvider(p.id)}
-                      className={`p-4 rounded-2xl text-left border-2 transition-all flex flex-col justify-between ${
-                        paymentProvider === p.id
-                          ? 'border-amber-500 bg-amber-50/50 shadow-xs ring-2 ring-amber-500/20'
-                          : 'border-stone-200 bg-white hover:border-stone-300'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <CreditCard
-                          className={`w-5 h-5 ${
-                            paymentProvider === p.id
-                              ? 'text-amber-600'
-                              : 'text-stone-400'
-                          }`}
-                        />
-                        {paymentProvider === p.id && (
-                          <CheckCircle2 className="w-4 h-4 text-amber-600" />
-                        )}
+                <div className="p-4 rounded-2xl border-2 border-emerald-600 bg-emerald-50/50 shadow-xs flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-600 border border-emerald-500 flex items-center justify-center font-black text-white text-xs tracking-wider shadow-sm">
+                      CHAPA
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-sm text-stone-900">
+                          Chapa Secure Checkout
+                        </span>
+                        <span className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                          Official
+                        </span>
                       </div>
-                      <div>
-                        <p className="font-extrabold text-sm text-stone-900">
-                          {p.name}
-                        </p>
-                        <p className="text-xs text-stone-500 mt-0.5">{p.sub}</p>
-                      </div>
-                    </button>
-                  ))}
+                      <p className="text-xs text-stone-600 mt-0.5">
+                        Instant payment via Telebirr, CBE Birr, Awash Bank, or Ethiopian Debit Cards.
+                      </p>
+                    </div>
+                  </div>
+                  <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0 ml-2" />
                 </div>
               </div>
 

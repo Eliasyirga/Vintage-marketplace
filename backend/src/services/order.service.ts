@@ -223,12 +223,13 @@ export async function createOrder(
 
   // 7. If Platform Payment, initialize payment gateway transaction
   if (input.paymentMethod === 'PLATFORM_PAYMENT') {
-    const providerName = input.provider || 'MOCK'
+    const providerName = input.provider === 'MOCK' ? 'MOCK' : 'CHAPA'
     const { payment, initResult } = await createPayment(buyerId, {
       purpose: 'ORDER_PURCHASE',
       provider: providerName,
       transactionId: createdOrder.id,
-      returnUrl: input.returnUrl || `${process.env.CLIENT_URL || 'http://localhost:5173'}/orders/${createdOrder.id}`,
+      orderId: createdOrder.id,
+      returnUrl: input.returnUrl,
       callbackUrl: input.callbackUrl,
     })
 
