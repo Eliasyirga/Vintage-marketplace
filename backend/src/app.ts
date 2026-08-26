@@ -70,7 +70,16 @@ app.use(globalLimiter)
 ensureUploadDirectory()
 app.use('/uploads', express.static(path.resolve(process.cwd(), env.UPLOAD_DIR)))
 
-// ── Health check ───────────────────────────────────────────────────────────
+// ── Health check & Root endpoint ───────────────────────────────────────────
+app.get('/', (_req, res) => {
+  res.json({
+    success: true,
+    message: 'Vintage Marketplace Backend API is live',
+    health: '/api/health',
+    timestamp: new Date().toISOString(),
+  })
+})
+
 app.get('/api/health', (_req, res) => {
   res.json({
     success: true,
