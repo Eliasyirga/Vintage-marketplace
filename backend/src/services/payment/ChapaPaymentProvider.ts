@@ -24,7 +24,10 @@ export class ChapaPaymentProvider implements PaymentProvider {
 
   async initializePayment(params: PaymentInitParams): Promise<PaymentInitResult> {
     if (!this.secretKey) {
-      throw new Error('Chapa payment gateway is not configured (missing CHAPA_SECRET_KEY).')
+      throw Object.assign(
+        new Error('Chapa payment gateway is not configured on the server (missing CHAPA_SECRET_KEY). Please add your Chapa API keys in the environment settings.'),
+        { statusCode: 400 },
+      )
     }
 
     const payload = {
@@ -78,7 +81,10 @@ export class ChapaPaymentProvider implements PaymentProvider {
 
   async verifyPayment(reference: string): Promise<PaymentVerifyResult> {
     if (!this.secretKey) {
-      throw new Error('Chapa payment gateway is not configured (missing CHAPA_SECRET_KEY).')
+      throw Object.assign(
+        new Error('Chapa payment gateway is not configured on the server (missing CHAPA_SECRET_KEY).'),
+        { statusCode: 400 },
+      )
     }
 
     const verifyUrl = `${this.baseUrl}/v1/transaction/verify/${encodeURIComponent(reference)}`
