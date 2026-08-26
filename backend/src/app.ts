@@ -95,6 +95,7 @@ app.get('/api/health', (_req, res) => {
   res.json({
     success: true,
     message: 'Vintage Marketplace API is running',
+    smtpConfigured: !!(env.SMTP_USER && env.SMTP_PASSWORD && (env.SMTP_HOST || env.SMTP_USER.includes('@gmail.com'))),
     timestamp: new Date().toISOString(),
   })
 })

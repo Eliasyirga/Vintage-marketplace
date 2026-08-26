@@ -4,59 +4,103 @@ import path from 'path'
 import { env } from '../config/env'
 
 // ─── Singleton Transporter ────────────────────────────────────────────────────
-// Created once; reused for every outgoing email to avoid overhead.
 let transporter: nodemailer.Transporter | null = null
+
+export function isSMTPConfigured(): boolean {
+  return !!(env.SMTP_USER && env.SMTP_PASSWORD && (env.SMTP_HOST || env.SMTP_USER.includes('@gmail.com')))
+}
 
 function getTransporter(): nodemailer.Transporter | null {
   if (transporter) return transporter
 
-  if (!env.SMTP_HOST || !env.SMTP_USER || !env.SMTP_PASSWORD) {
+  if (!isSMTPConfigured()) {
     return null
   }
 
   // Strip any accidental spaces from Gmail App Passwords (e.g. "xxxx xxxx xxxx xxxx" → "xxxxxxxxxxxxxxxx")
   const cleanPassword = env.SMTP_PASSWORD.replace(/\s+/g, '')
 
-  transporter = nodemailer.createTransport({
-    host: env.SMTP_HOST,
-    port: env.SMTP_PORT,
-    // Port 465 = implicit TLS (secure: true); port 587 = STARTTLS (secure: false)
-    secure: env.SMTP_PORT === 465,
-    auth: {
-      user: env.SMTP_USER,
-      pass: cleanPassword,
-    },
-    // Reliability timeouts for hosted environments (Render, etc.)
-    connectionTimeout: 10000,  // 10s to establish TCP connection
-    greetingTimeout: 10000,    // 10s to receive SMTP greeting
-    socketTimeout: 30000,      // 30s idle socket timeout
-    pool: false,               // Single connection per send (safer on serverless/PaaS)
-  } as nodemailer.TransportOptions)
+  const hostLower = (env.SMTP_HOST || '').toLowerCase()
+  const userLower = (env.SMTP_USER || '').toLowerCase()
+  const isGmail = hostLower.includes('gmail') || userLower.includes('@gmail.com')
+
+  if (isGmail) {
+    transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: env.SMTP_USER,
+        pass: cleanPassword,
+      },
+      // Force IPv4 to prevent IPv6 connect timeout hangs on cloud hosts like Render/Railway/AWS
+      family: 4,
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 30000,
+      pool: false,
+    } as nodemailer.TransportOptions)
+  } else {
+    transporter = nodemailer.createTransport({
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
+      secure: env.SMTP_PORT === 465,
+      auth: {
+        user: env.SMTP_USER,
+        pass: cleanPassword,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+      family: 4,
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 30000,
+      pool: false,
+    } as nodemailer.TransportOptions)
+  }
 
   return transporter
 }
 
 // ─── SMTP Connection Verification ────────────────────────────────────────────
 /**
- * Verify the SMTP connection at startup.
- * Logs success or failure without exposing credentials.
+ * Verify the SMTP connection at startup or on-demand.
+ * Logs clear diagnostic messages and tips without exposing credentials.
  */
 export async function verifyEmailConnection(): Promise<boolean> {
-  // Always re-create transporter on explicit verify call
   transporter = null
   const transport = getTransporter()
   if (!transport) {
-    console.warn('⚠️ [Email] SMTP not configured — email delivery is disabled.')
+    console.warn(
+      '⚠️ [Email] SMTP is NOT configured in environment variables.\n' +
+      '   Required: SMTP_USER, SMTP_PASSWORD, and SMTP_HOST.\n' +
+      '   Emails (including verification OTPs) will NOT be delivered until configured in deployment settings.',
+    )
     return false
   }
+
   try {
     await transport.verify()
-    console.log('✅ [Email] SMTP connection verified — Gmail ready to send.')
+    console.log('✅ [Email] SMTP connection verified successfully — ready to deliver emails.')
     return true
   } catch (err: unknown) {
-    const e = err as { code?: string; response?: string; message?: string }
-    console.error(`❌ [Email] SMTP verify failed — code: ${e.code}, response: ${e.response}, message: ${e.message}`)
-    transporter = null // Reset so next send attempt re-creates the transporter
+    const e = err as { code?: string; response?: string; responseCode?: number; message?: string }
+    console.error(
+      `❌ [Email] SMTP connection verification failed:\n` +
+      `   Message: ${e.message}\n` +
+      `   Code:    ${e.code ?? 'N/A'}\n` +
+      `   Reply:   ${e.response ?? 'N/A'}`,
+    )
+
+    if (e.response?.includes('535') || e.code === 'EAUTH') {
+      console.error(
+        '💡 [Email Tip] Authentication failed. If using Gmail:\n' +
+        '   1. Ensure 2-Step Verification is turned ON on your Google Account.\n' +
+        '   2. Generate an App Password at: https://myaccount.google.com/apppasswords\n' +
+        '   3. Use the 16-character App Password for SMTP_PASSWORD (do NOT use your standard account password).',
+      )
+    }
+
+    transporter = null
     return false
   }
 }
@@ -64,23 +108,69 @@ export async function verifyEmailConnection(): Promise<boolean> {
 // ─── Template Engine ──────────────────────────────────────────────────────────
 /**
  * Load an HTML email template and replace {{variable}} placeholders.
+ * Checks multiple locations so it works in both dev (src/) and production (dist/).
  */
 function renderTemplate(
   templateName: string,
   variables: Record<string, string | number>,
 ): string {
-  const templatePath = path.resolve(
-    __dirname,
-    '../templates/email',
-    templateName,
-  )
+  const candidatePaths = [
+    path.resolve(__dirname, '../templates/email', templateName),
+    path.resolve(__dirname, '../../src/templates/email', templateName),
+    path.resolve(process.cwd(), 'src/templates/email', templateName),
+    path.resolve(process.cwd(), 'dist/templates/email', templateName),
+  ]
 
-  let html: string
-  try {
-    html = fs.readFileSync(templatePath, 'utf-8')
-  } catch {
-    // Fallback: return a minimal inline template if file isn't found
-    html = `<p>Your verification code is: <strong>{{otp}}</strong></p>`
+  let html: string | null = null
+  for (const candidate of candidatePaths) {
+    try {
+      if (fs.existsSync(candidate)) {
+        html = fs.readFileSync(candidate, 'utf-8')
+        break
+      }
+    } catch {
+      // Continue to next candidate
+    }
+  }
+
+  if (!html) {
+    // High quality inline HTML fallback
+    html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verification Code</title>
+</head>
+<body style="margin: 0; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; color: #1e293b;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+    <tr>
+      <td style="background: #1e293b; padding: 24px; text-align: center;">
+        <h1 style="margin: 0; color: #ffffff; font-size: 20px; letter-spacing: -0.5px;">Vintage Marketplace</h1>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 32px 28px;">
+        <p style="margin: 0 0 16px; font-size: 16px;">Hello <strong>{{fullName}}</strong>,</p>
+        <p style="margin: 0 0 24px; font-size: 15px; color: #475569; line-height: 1.5;">
+          Use the verification code below to confirm your account:
+        </p>
+        <div style="text-align: center; margin: 28px 0;">
+          <span style="display: inline-block; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #4f46e5; background: #f1f5f9; padding: 14px 28px; border-radius: 8px; border: 1px dashed #cbd5e1; font-family: monospace;">{{otp}}</span>
+        </div>
+        <p style="margin: 0 0 8px; font-size: 13px; color: #64748b; text-align: center;">
+          This code expires in <strong>{{expirationMinutes}} minutes</strong>.
+        </p>
+        <p style="margin: 24px 0 0; font-size: 12px; color: #94a3b8; line-height: 1.5; border-top: 1px solid #f1f5f9; padding-top: 16px;">
+          For your security, never share this code with anyone. If you didn't request this verification code, please ignore this email.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `.trim()
   }
 
   // Replace all {{variable}} placeholders
@@ -102,15 +192,6 @@ interface SendOTPOptions {
 
 /**
  * Send a professionally designed OTP verification email.
- *
- * Development behaviour:
- * - Always logs the OTP to the console (safe for local testing).
- * - If SMTP is not configured, falls back to console logging only.
- *
- * Production behaviour:
- * - Requires full SMTP configuration.
- * - Throws a safe error if SMTP is unavailable.
- * - Never logs the OTP.
  */
 export async function sendVerificationOTP({
   to,
@@ -118,13 +199,18 @@ export async function sendVerificationOTP({
   otp,
   expirationMinutes = 5,
 }: SendOTPOptions): Promise<void> {
-  console.log(`\n🔑 [VERIFICATION OTP] To: ${to} | Code: ${otp}\n`)
+  if (env.isDevelopment) {
+    console.log(`\n🔑 [VERIFICATION OTP] To: ${to} | Code: ${otp}\n`)
+  }
 
   const transport = getTransporter()
 
   // ── No SMTP configured ────────────────────────────────────────────────────
   if (!transport) {
-    console.warn('⚠️  SMTP not configured — OTP logged to server logs above.')
+    console.warn(`⚠️ [Email] Cannot send OTP to ${to} — SMTP is not configured. (Check SMTP_HOST, SMTP_USER, SMTP_PASSWORD)`)
+    if (env.isProduction) {
+      throw new Error('Email service is not configured on the server. Please check SMTP environment variables.')
+    }
     return
   }
 
@@ -163,17 +249,22 @@ If you did not create a Vintage Marketplace account, ignore this email.
       text,
       html,
     })
-    console.log(`✅ [Email] OTP sent to ${to}`)
+    console.log(`✅ [Email] OTP successfully sent to ${to}`)
   } catch (err: unknown) {
-    const e = err as { code?: string; response?: string; message?: string }
-    // Always log sanitised SMTP error so it appears in Render logs
-    console.error(`❌ [Email] OTP sendMail failed — code: ${e.code}, response: ${e.response}, message: ${e.message}`)
-    transporter = null // Reset transporter so next request re-creates it fresh
+    const e = err as { code?: string; response?: string; responseCode?: number; message?: string }
+    console.error(
+      `❌ [Email] OTP sendMail failed to ${to}:\n` +
+      `   Message: ${e.message}\n` +
+      `   Code:    ${e.code ?? 'N/A'}\n` +
+      `   Reply:   ${e.response ?? 'N/A'}`,
+    )
+    transporter = null // Reset transporter so next attempt re-initializes cleanly
+
     if (env.isDevelopment) {
-      return // In dev, fall back gracefully; OTP already printed above
+      return
     }
-    // In production: do NOT expose provider error details to the client
-    throw new Error('Unable to send the verification email. Please try again.')
+
+    throw new Error('Unable to deliver verification email. Please check that your email address is correct or try again shortly.')
   }
 }
 
@@ -194,6 +285,7 @@ export async function sendEmail({
 
   const transport = getTransporter()
   if (!transport) {
+    console.warn(`⚠️ [Email] Cannot send email to ${to} — SMTP not configured.`)
     return
   }
 
@@ -206,9 +298,6 @@ export async function sendEmail({
       html,
     })
   } catch (err) {
-    if (env.isDevelopment) {
-      console.error('❌ [Email] sendMail failed in dev:', err)
-    }
+    console.error(`❌ [Email] sendMail failed for ${to}:`, err)
   }
 }
-

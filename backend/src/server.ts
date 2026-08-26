@@ -5,11 +5,17 @@ import { connectDatabase } from './config/database'
 import { env } from './config/env'
 import { seedAdvertisementPlans } from './scripts/seed-ad-plans'
 import { initSocketServer } from './socket/socket.service'
+import { verifyEmailConnection } from './services/email.service'
 
 async function start(): Promise<void> {
   try {
     await connectDatabase()
     await seedAdvertisementPlans()
+
+    // Non-blocking SMTP verification check on startup
+    verifyEmailConnection().catch((err) => {
+      console.error('⚠️ [Email] SMTP startup check failed:', err)
+    })
 
     const server = http.createServer(app)
     initSocketServer(server)
