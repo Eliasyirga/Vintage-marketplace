@@ -34,6 +34,9 @@ export async function validateBuyNowEligible(
   listingId: string,
   buyerId: string,
 ): Promise<{ eligible: boolean; listing: Listing; seller: User }> {
+  // First clean up any expired reservations globally
+  await cleanupExpiredReservations().catch(() => 0)
+
   const listing = await Listing.findByPk(listingId, {
     include: [{ model: User, as: 'seller' }],
   })
@@ -62,10 +65,35 @@ export async function validateBuyNowEligible(
   }
 
   if (listing.status === 'RESERVED') {
-    throw Object.assign(
-      new Error('This item is currently reserved in an active checkout session by another buyer.'),
-      { statusCode: 409 },
-    )
+    // Check if there is an active pending reservation order for this listing
+    const activeOrder = await Order.findOne({
+      where: {
+        listing_id: listingId,
+        status: { [Op.in]: ['PENDING_PAYMENT', 'MEETING_REQUESTED'] },
+        payment_status: 'PENDING',
+      },
+      order: [['created_at', 'DESC']],
+    })
+
+    const now = new Date()
+    if (!activeOrder) {
+      // Stale reservation status without an active pending order — release to ACTIVE
+      await listing.update({ status: 'ACTIVE' })
+      listing.status = 'ACTIVE'
+    } else if (activeOrder.reservation_expires_at && new Date(activeOrder.reservation_expires_at) < now) {
+      // Expired reservation — cancel stale order and release listing back to ACTIVE
+      await activeOrder.update({ status: 'CANCELLED', reservation_expires_at: null })
+      await listing.update({ status: 'ACTIVE' })
+      listing.status = 'ACTIVE'
+    } else if (activeOrder.buyer_id === buyerId) {
+      // The SAME buyer is returning to complete/modify checkout — allow access!
+      return { eligible: true, listing, seller }
+    } else {
+      throw Object.assign(
+        new Error('This item is currently reserved in an active checkout session by another buyer.'),
+        { statusCode: 409 },
+      )
+    }
   }
 
   if (listing.status !== 'ACTIVE') {
@@ -108,7 +136,35 @@ export async function createOrder(
       transaction: t,
     })
 
-    if (!listing || listing.status !== 'ACTIVE') {
+    if (!listing) {
+      throw Object.assign(new Error('Listing does not exist.'), { statusCode: 404 })
+    }
+
+    if (listing.status === 'RESERVED') {
+      // Check if this is the same buyer re-initiating/retrying checkout
+      const existingPendingOrder = await Order.findOne({
+        where: {
+          listing_id: listing.id,
+          buyer_id: buyerId,
+          status: { [Op.in]: ['PENDING_PAYMENT', 'MEETING_REQUESTED'] },
+          payment_status: 'PENDING',
+        },
+        transaction: t,
+      })
+
+      if (existingPendingOrder) {
+        // Cancel the prior pending session and recreate with updated fulfillment/payment details
+        await existingPendingOrder.update(
+          { status: 'CANCELLED', reservation_expires_at: null },
+          { transaction: t },
+        )
+      } else {
+        throw Object.assign(
+          new Error('This item was just reserved or purchased by another buyer.'),
+          { statusCode: 409 },
+        )
+      }
+    } else if (listing.status !== 'ACTIVE') {
       throw Object.assign(
         new Error('This item was just reserved or purchased by another buyer.'),
         { statusCode: 409 },
