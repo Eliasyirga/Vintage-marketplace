@@ -36,6 +36,12 @@ import { ensureUploadDirectory } from './services/upload.service'
 
 const app = express()
 
+// ── Trust Proxy ────────────────────────────────────────────────────────────
+// Trust the first reverse proxy hop (Render / PaaS reverse proxy).
+// Ensures req.ip correctly resolves the client IP from X-Forwarded-For
+// and satisfies express-rate-limit validation without IP spoofing vulnerability.
+app.set('trust proxy', 1)
+
 // ── Security headers ───────────────────────────────────────────────────────
 app.use(
   helmet({

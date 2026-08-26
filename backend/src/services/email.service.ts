@@ -14,16 +14,24 @@ function getTransporter(): nodemailer.Transporter | null {
     return null
   }
 
+  // Strip any accidental spaces from Gmail App Passwords (e.g. "xxxx xxxx xxxx xxxx" → "xxxxxxxxxxxxxxxx")
+  const cleanPassword = env.SMTP_PASSWORD.replace(/\s+/g, '')
+
   transporter = nodemailer.createTransport({
     host: env.SMTP_HOST,
     port: env.SMTP_PORT,
-    // Port 465 requires secure TLS; port 587 uses STARTTLS (secure: false)
+    // Port 465 = implicit TLS (secure: true); port 587 = STARTTLS (secure: false)
     secure: env.SMTP_PORT === 465,
     auth: {
       user: env.SMTP_USER,
-      pass: env.SMTP_PASSWORD,
+      pass: cleanPassword,
     },
-  })
+    // Reliability timeouts for hosted environments (Render, etc.)
+    connectionTimeout: 10000,  // 10s to establish TCP connection
+    greetingTimeout: 10000,    // 10s to receive SMTP greeting
+    socketTimeout: 30000,      // 30s idle socket timeout
+    pool: false,               // Single connection per send (safer on serverless/PaaS)
+  } as nodemailer.TransportOptions)
 
   return transporter
 }
@@ -34,6 +42,8 @@ function getTransporter(): nodemailer.Transporter | null {
  * Logs success or failure without exposing credentials.
  */
 export async function verifyEmailConnection(): Promise<boolean> {
+  // Always re-create transporter on explicit verify call
+  transporter = null
   const transport = getTransporter()
   if (!transport) {
     console.warn('⚠️ [Email] SMTP not configured — email delivery is disabled.')
@@ -43,13 +53,10 @@ export async function verifyEmailConnection(): Promise<boolean> {
     await transport.verify()
     console.log('✅ [Email] SMTP connection verified — Gmail ready to send.')
     return true
-  } catch (err) {
-    // Log raw error only in development for debugging; never expose in production
-    if (env.isDevelopment) {
-      console.error('❌ [Email] SMTP verify failed:', err)
-    } else {
-      console.error('❌ [Email] SMTP connection failed. Check SMTP_* environment variables.')
-    }
+  } catch (err: unknown) {
+    const e = err as { code?: string; response?: string; message?: string }
+    console.error(`❌ [Email] SMTP verify failed — code: ${e.code}, response: ${e.response}, message: ${e.message}`)
+    transporter = null // Reset so next send attempt re-creates the transporter
     return false
   }
 }
@@ -156,12 +163,16 @@ If you did not create a Vintage Marketplace account, ignore this email.
       text,
       html,
     })
-  } catch (err) {
+    console.log(`✅ [Email] OTP sent to ${to}`)
+  } catch (err: unknown) {
+    const e = err as { code?: string; response?: string; message?: string }
+    // Always log sanitised SMTP error so it appears in Render logs
+    console.error(`❌ [Email] OTP sendMail failed — code: ${e.code}, response: ${e.response}, message: ${e.message}`)
+    transporter = null // Reset transporter so next request re-creates it fresh
     if (env.isDevelopment) {
-      console.error('❌ [Email] SMTP sendMail failed (dev mode, code still in console):', err)
       return // In dev, fall back gracefully; OTP already printed above
     }
-    // In production: do NOT expose provider error details
+    // In production: do NOT expose provider error details to the client
     throw new Error('Unable to send the verification email. Please try again.')
   }
 }
