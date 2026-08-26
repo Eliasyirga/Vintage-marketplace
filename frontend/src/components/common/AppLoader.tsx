@@ -18,7 +18,6 @@ export function AppLoader({ children }: AppLoaderProps) {
   const [initError, setInitError] = useState<string | null>(null)
 
   useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout> | undefined
     let exitTimeoutId: ReturnType<typeof setTimeout> | undefined
 
     // Safety timeout: If initialization hangs for more than 10 seconds, show recovery error
