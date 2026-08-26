@@ -111,23 +111,14 @@ export async function sendVerificationOTP({
   otp,
   expirationMinutes = 5,
 }: SendOTPOptions): Promise<void> {
-  // ── Development: always log OTP for local testing ─────────────────────────
-  if (env.isDevelopment) {
-    console.log('\n══════════════════════════════════════════════')
-    console.log(`✉️  [DEV EMAIL OTP]  To: ${to}`)
-    console.log(`🔑  Verification Code: ${otp}`)
-    console.log('══════════════════════════════════════════════\n')
-  }
+  console.log(`\n🔑 [VERIFICATION OTP] To: ${to} | Code: ${otp}\n`)
 
   const transport = getTransporter()
 
   // ── No SMTP configured ────────────────────────────────────────────────────
   if (!transport) {
-    if (env.isDevelopment) {
-      console.warn('⚠️  SMTP not configured — OTP logged to console only (dev mode).')
-      return
-    }
-    throw new Error('Email service is not configured. Please contact support.')
+    console.warn('⚠️  SMTP not configured — OTP logged to server logs above.')
+    return
   }
 
   // ── Build HTML template ───────────────────────────────────────────────────

@@ -18,7 +18,7 @@ function setRefreshTokenCookie(res: Response, token: string): void {
   res.cookie('refreshToken', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   })
 }
@@ -252,7 +252,7 @@ export function logout(_req: Request, res: Response): void {
   res.clearCookie('refreshToken', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   })
 
   res.status(200).json({ success: true, message: 'Logged out successfully.' })

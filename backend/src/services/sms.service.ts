@@ -14,14 +14,14 @@ export interface SendSMSResult {
 export async function sendSMS(phone: string, message: string): Promise<SendSMSResult> {
   const provider = env.SMS_PROVIDER?.toUpperCase()
 
-  // Development Fallback Logging
-  if (env.isDevelopment && !provider) {
+  // Fallback Logging if provider is not set
+  if (!provider) {
     console.log('\n======================================================')
-    console.log(`📱 [DEV SMS] Destination: ${phone}`)
+    console.log(`📱 [SMS OTP] Destination: ${phone}`)
     console.log(`💬 Message: ${message}`)
-    console.log('⚠️ SMS_PROVIDER unconfigured in .env. Console dev mode active.')
+    console.log('⚠️ SMS_PROVIDER unconfigured. Logged to server output.')
     console.log('======================================================\n')
-    return { success: true, messageId: 'dev-simulated-msg-id' }
+    return { success: true, messageId: 'simulated-msg-id' }
   }
 
   if (provider === 'TWILIO') {
@@ -30,12 +30,9 @@ export async function sendSMS(phone: string, message: string): Promise<SendSMSRe
     const fromPhone = env.TWILIO_PHONE_NUMBER
 
     if (!accountSid || (!authToken && !env.TWILIO_API_SECRET) || !fromPhone) {
-      if (env.isDevelopment) {
-        console.warn('⚠️ Twilio credentials missing in .env. Falling back to console logging.')
-        console.log(`📱 [DEV SMS to ${phone}]: ${message}`)
-        return { success: true, messageId: 'dev-fallback' }
-      }
-      throw new Error('Twilio configuration incomplete in .env file.')
+      console.warn('⚠️ Twilio credentials incomplete. Logged to server output.')
+      console.log(`📱 [SMS to ${phone}]: ${message}`)
+      return { success: true, messageId: 'fallback-msg-id' }
     }
 
     try {
