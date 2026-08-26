@@ -34,9 +34,9 @@ export function errorMiddleware(
     statusCode = e.statusCode ?? 500
     message = e.statusCode ? e.message : 'An unexpected error occurred.'
 
-    // Log server errors in development for debugging
-    if (env.isDevelopment && !e.statusCode) {
-      console.error('[ERROR]', err)
+    // Log unhandled server errors (5xx) for observability in Render logs
+    if (statusCode >= 500) {
+      console.error('[SERVER ERROR]', err)
     }
   }
 
