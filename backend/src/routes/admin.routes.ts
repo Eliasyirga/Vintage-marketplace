@@ -6,11 +6,12 @@ import * as adminController from '../controllers/admin.controller'
 const router = Router()
 
 // Every admin route requires authentication + ADMIN role
-// authorizeRoles('ADMIN') returns 403 if role !== ADMIN — backend enforced, not just React
 const requireAdmin = [requireAuth, authorizeRoles('ADMIN')]
 
-// ── Dashboard ────────────────────────────────────────────────────────────────
+// ── Dashboard & Analytics ──────────────────────────────────────────────────────
 router.get('/dashboard/stats', ...requireAdmin, adminController.getDashboardStats)
+router.get('/analytics/timeseries', ...requireAdmin, adminController.getTimeseriesAnalytics)
+router.get('/analytics/risk', ...requireAdmin, adminController.getRiskSignals)
 
 // ── Reports ──────────────────────────────────────────────────────────────────
 router.get('/reports', ...requireAdmin, adminController.getReports)
@@ -19,11 +20,23 @@ router.patch('/reports/:id', ...requireAdmin, adminController.updateReport)
 
 // ── Users ────────────────────────────────────────────────────────────────────
 router.get('/users', ...requireAdmin, adminController.getUsers)
+router.get('/users/:id/details', ...requireAdmin, adminController.getUserDetails)
 router.patch('/users/:id/status', ...requireAdmin, adminController.updateUserStatus)
 
 // ── Listings ─────────────────────────────────────────────────────────────────
 router.get('/listings', ...requireAdmin, adminController.getListings)
 router.patch('/listings/:id/status', ...requireAdmin, adminController.updateListingStatus)
+
+// ── Orders ───────────────────────────────────────────────────────────────────
+router.get('/orders', ...requireAdmin, adminController.getOrders)
+router.get('/orders/:id', ...requireAdmin, adminController.getOrderById)
+
+// ── Payments (Chapa Gateway) ─────────────────────────────────────────────────
+router.get('/payments', ...requireAdmin, adminController.getPayments)
+
+// ── Businesses ────────────────────────────────────────────────────────────────
+router.get('/businesses', ...requireAdmin, adminController.getBusinesses)
+router.patch('/businesses/:id/status', ...requireAdmin, adminController.updateBusinessStatus)
 
 // ── Verifications ─────────────────────────────────────────────────────────────
 router.get('/verifications', ...requireAdmin, adminController.getVerifications)

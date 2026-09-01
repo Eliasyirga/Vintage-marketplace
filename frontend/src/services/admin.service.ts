@@ -1,12 +1,41 @@
 import api from './api'
-import type { DashboardStats, AdminAuditLogItem } from '../types/admin'
+import type {
+  DashboardStats,
+  TimeseriesDataPoint,
+  AccountTierBreakdown,
+  RiskSignalItem,
+  AdminUserItem,
+  UserDetailsDossier,
+  AdminListingItem,
+  AdminOrderItem,
+  AdminPaymentItem,
+  AdminBusinessItem,
+  AdminAuditLogItem,
+} from '../types/admin'
 import type { ReportItem, ReportStatus, ReportPriority } from '../types/report'
 import type { UserVerificationItem } from '../types/verification'
+
+// ── Dashboard & Analytics ──────────────────────────────────────────────────────
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   const response = await api.get('/admin/dashboard/stats')
   return response.data.data.stats
 }
+
+export async function getTimeseriesAnalytics(days = 30): Promise<{
+  timeseries: TimeseriesDataPoint[]
+  tiers: AccountTierBreakdown
+}> {
+  const response = await api.get('/admin/analytics/timeseries', { params: { days } })
+  return response.data.data
+}
+
+export async function getRiskSignals(): Promise<RiskSignalItem[]> {
+  const response = await api.get('/admin/analytics/risk')
+  return response.data.data.signals
+}
+
+// ── Reports ────────────────────────────────────────────────────────────────────
 
 export async function getAdminReports(params?: {
   status?: ReportStatus
@@ -27,14 +56,23 @@ export async function updateAdminReport(
   return response.data.data.report
 }
 
+// ── Users ──────────────────────────────────────────────────────────────────────
+
 export async function getAdminUsers(params?: {
   page?: number
   limit?: number
   search?: string
   status?: string
   role?: string
-}): Promise<{ users: any[]; pagination: any }> {
+  verification?: string
+  tier?: string
+}): Promise<{ users: AdminUserItem[]; pagination: any }> {
   const response = await api.get('/admin/users', { params })
+  return response.data.data
+}
+
+export async function getUserDetails(userId: string): Promise<UserDetailsDossier> {
+  const response = await api.get(`/admin/users/${userId}/details`)
   return response.data.data
 }
 
@@ -47,24 +85,86 @@ export async function updateUserStatus(
   return response.data.data
 }
 
+// ── Listings ─────────────────────────────────────────────────────────────────
+
 export async function getAdminListings(params?: {
   page?: number
   limit?: number
   search?: string
   status?: string
-}): Promise<{ listings: any[]; pagination: any }> {
+  categoryId?: string
+}): Promise<{ listings: AdminListingItem[]; pagination: any }> {
   const response = await api.get('/admin/listings', { params })
   return response.data.data
 }
 
 export async function updateListingStatus(
   listingId: string,
-  status: 'ACTIVE' | 'REMOVED' | 'ARCHIVED' | 'SOLD',
+  status: string,
   reason?: string,
+  adminNote?: string,
 ): Promise<{ listingId: string; status: string }> {
-  const response = await api.patch(`/admin/listings/${listingId}/status`, { status, reason })
+  const response = await api.patch(`/admin/listings/${listingId}/status`, { status, reason, adminNote })
   return response.data.data
 }
+
+// ── Orders ───────────────────────────────────────────────────────────────────
+
+export async function getAdminOrders(params?: {
+  page?: number
+  limit?: number
+  search?: string
+  status?: string
+  paymentStatus?: string
+}): Promise<{ orders: AdminOrderItem[]; pagination: any }> {
+  const response = await api.get('/admin/orders', { params })
+  return response.data.data
+}
+
+export async function getAdminOrderById(orderId: string): Promise<{ order: AdminOrderItem & { events: any[] } }> {
+  const response = await api.get(`/admin/orders/${orderId}`)
+  return response.data.data
+}
+
+// ── Payments (Chapa Gateway) ─────────────────────────────────────────────────
+
+export async function getAdminPayments(params?: {
+  page?: number
+  limit?: number
+  search?: string
+  purpose?: string
+  status?: string
+}): Promise<{
+  payments: AdminPaymentItem[]
+  summary: { totalVolume: number; successfulCount: number; failedCount: number; pendingCount: number }
+  pagination: any
+}> {
+  const response = await api.get('/admin/payments', { params })
+  return response.data.data
+}
+
+// ── Businesses ────────────────────────────────────────────────────────────────
+
+export async function getAdminBusinesses(params?: {
+  page?: number
+  limit?: number
+  search?: string
+  status?: string
+}): Promise<{ businesses: AdminBusinessItem[]; pagination: any }> {
+  const response = await api.get('/admin/businesses', { params })
+  return response.data.data
+}
+
+export async function updateBusinessStatus(
+  businessId: string,
+  status: 'PENDING' | 'VERIFIED' | 'REJECTED',
+  reason?: string,
+): Promise<{ business: AdminBusinessItem }> {
+  const response = await api.patch(`/admin/businesses/${businessId}/status`, { status, reason })
+  return response.data.data
+}
+
+// ── Verifications ─────────────────────────────────────────────────────────────
 
 export async function getAdminVerifications(params?: {
   page?: number
@@ -85,6 +185,8 @@ export async function rejectVerification(id: string, reason: string): Promise<Us
   return response.data.data.verification
 }
 
+// ── Reviews ───────────────────────────────────────────────────────────────────
+
 export async function getAdminReviews(params?: {
   page?: number
   limit?: number
@@ -93,6 +195,8 @@ export async function getAdminReviews(params?: {
   const response = await api.get('/admin/reviews', { params })
   return response.data.data
 }
+
+// ── Audit Logs ────────────────────────────────────────────────────────────────
 
 export async function getAdminAuditLogs(params?: {
   page?: number

@@ -1,17 +1,38 @@
 import type { Request, Response, NextFunction } from 'express'
 import * as adminService from '../services/admin.service'
+import * as adminAnalyticsService from '../services/adminAnalytics.service'
 import * as reportService from '../services/report.service'
 import * as verificationService from '../services/verification.service'
 import * as reviewService from '../services/review.service'
 import type { ReportStatus, ReportPriority } from '../models/Report'
 import type { UserStatus } from '../types/auth.types'
 
-// ── Dashboard ──────────────────────────────────────────────────────────────────
+// ── Dashboard & Analytics ──────────────────────────────────────────────────────
 
-export async function getDashboardStats(req: Request, res: Response, next: NextFunction) {
+export async function getDashboardStats(_req: Request, res: Response, next: NextFunction) {
   try {
-    const stats = await adminService.getDashboardStats()
+    const stats = await adminAnalyticsService.getOverviewStats()
     res.json({ success: true, data: { stats } })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getTimeseriesAnalytics(req: Request, res: Response, next: NextFunction) {
+  try {
+    const days = parseInt(String(req.query.days ?? '30')) || 30
+    const timeseries = await adminAnalyticsService.getTimeseriesGrowth(days)
+    const tiers = await adminAnalyticsService.getAccountTierBreakdown()
+    res.json({ success: true, data: { timeseries, tiers } })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getRiskSignals(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const signals = await adminAnalyticsService.getRiskSignals()
+    res.json({ success: true, data: { signals } })
   } catch (err) {
     next(err)
   }
@@ -82,7 +103,19 @@ export async function getUsers(req: Request, res: Response, next: NextFunction) 
       search: req.query.search ? String(req.query.search) : undefined,
       status: req.query.status ? (String(req.query.status) as UserStatus) : undefined,
       role: req.query.role ? (String(req.query.role) as 'USER' | 'ADMIN') : undefined,
+      verification: req.query.verification ? (String(req.query.verification) as any) : undefined,
+      tier: req.query.tier ? (String(req.query.tier) as any) : undefined,
     })
+    res.json({ success: true, data: result })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getUserDetails(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = String(req.params.id)
+    const result = await adminService.getUserDetailsAdmin(userId)
     res.json({ success: true, data: result })
   } catch (err) {
     next(err)
@@ -100,28 +133,24 @@ export async function updateUserStatus(req: Request, res: Response, next: NextFu
       return
     }
 
-    const user = await adminService.updateUserStatus(
+    const updatedUser = await adminService.updateUserStatus(
       userId,
       adminId,
       status as UserStatus,
       reason ? String(reason) : undefined,
     )
 
-    await adminService.createAuditLog({
-      adminId,
-      action: `USER_${status}`,
-      targetType: 'USER',
-      targetId: user.id,
-      reason: reason ? String(reason) : undefined,
+    res.json({
+      success: true,
+      message: `User status updated to ${status}.`,
+      data: { user: updatedUser.toSafeObject() },
     })
-
-    res.json({ success: true, message: `User status updated to ${status}.`, data: { userId: user.id, status: user.status } })
   } catch (err) {
     next(err)
   }
 }
 
-// ── Listings ───────────────────────────────────────────────────────────────────
+// ── Listings ─────────────────────────────────────────────────────────────────
 
 export async function getListings(req: Request, res: Response, next: NextFunction) {
   try {
@@ -130,6 +159,7 @@ export async function getListings(req: Request, res: Response, next: NextFunctio
       limit: parseInt(String(req.query.limit ?? '20')) || 20,
       search: req.query.search ? String(req.query.search) : undefined,
       status: req.query.status ? String(req.query.status) : undefined,
+      categoryId: req.query.categoryId ? String(req.query.categoryId) : undefined,
     })
     res.json({ success: true, data: result })
   } catch (err) {
@@ -141,38 +171,118 @@ export async function updateListingStatus(req: Request, res: Response, next: Nex
   try {
     const adminId = req.user!.id
     const listingId = String(req.params.id)
-    const { status, reason } = req.body
+    const { status, reason, adminNote } = req.body
 
     if (!status) {
       res.status(400).json({ success: false, message: 'status is required.' })
       return
     }
 
-    const listing = await adminService.updateListingStatus(listingId, String(status))
-
-    await adminService.createAuditLog({
+    const updated = await adminService.updateListingStatus(
+      listingId,
+      status,
       adminId,
-      action: status === 'REMOVED' ? 'LISTING_REMOVED' : `LISTING_${status}`,
-      targetType: 'LISTING',
-      targetId: listing.id,
-      reason: reason ? String(reason) : undefined,
-    })
+      reason ? String(reason) : undefined,
+      adminNote ? String(adminNote) : undefined,
+    )
 
-    res.json({ success: true, message: `Listing status updated to ${status}.`, data: { listingId: listing.id, status: listing.status } })
+    res.json({
+      success: true,
+      message: `Listing status updated to ${status}.`,
+      data: { listing: updated.toJSON() },
+    })
   } catch (err) {
     next(err)
   }
 }
 
-// ── Verifications ──────────────────────────────────────────────────────────────
+// ── Orders ───────────────────────────────────────────────────────────────────
+
+export async function getOrders(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await adminService.getOrdersAdmin({
+      page: parseInt(String(req.query.page ?? '1')) || 1,
+      limit: parseInt(String(req.query.limit ?? '20')) || 20,
+      search: req.query.search ? String(req.query.search) : undefined,
+      status: req.query.status ? String(req.query.status) : undefined,
+      paymentStatus: req.query.paymentStatus ? String(req.query.paymentStatus) : undefined,
+    })
+    res.json({ success: true, data: result })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getOrderById(req: Request, res: Response, next: NextFunction) {
+  try {
+    const orderId = String(req.params.id)
+    const order = await adminService.getOrderByIdAdmin(orderId)
+    res.json({ success: true, data: { order } })
+  } catch (err) {
+    next(err)
+  }
+}
+
+// ── Payments (Chapa Gateway) ─────────────────────────────────────────────────
+
+export async function getPayments(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await adminService.getPaymentsAdmin({
+      page: parseInt(String(req.query.page ?? '1')) || 1,
+      limit: parseInt(String(req.query.limit ?? '20')) || 20,
+      search: req.query.search ? String(req.query.search) : undefined,
+      purpose: req.query.purpose ? String(req.query.purpose) : undefined,
+      status: req.query.status ? String(req.query.status) : undefined,
+    })
+    res.json({ success: true, data: result })
+  } catch (err) {
+    next(err)
+  }
+}
+
+// ── Businesses ────────────────────────────────────────────────────────────────
+
+export async function getBusinesses(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await adminService.getBusinessesAdmin({
+      page: parseInt(String(req.query.page ?? '1')) || 1,
+      limit: parseInt(String(req.query.limit ?? '20')) || 20,
+      search: req.query.search ? String(req.query.search) : undefined,
+      status: req.query.status ? String(req.query.status) : undefined,
+    })
+    res.json({ success: true, data: result })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function updateBusinessStatus(req: Request, res: Response, next: NextFunction) {
+  try {
+    const adminId = req.user!.id
+    const businessId = String(req.params.id)
+    const { status, reason } = req.body
+
+    const updated = await adminService.updateBusinessStatusAdmin(
+      businessId,
+      status,
+      adminId,
+      reason ? String(reason) : undefined,
+    )
+
+    res.json({ success: true, message: `Business profile marked as ${status}.`, data: { business: updated } })
+  } catch (err) {
+    next(err)
+  }
+}
+
+// ── Verifications ─────────────────────────────────────────────────────────────
 
 export async function getVerifications(req: Request, res: Response, next: NextFunction) {
   try {
-    const result = await verificationService.getPendingVerifications({
-      page: parseInt(String(req.query.page ?? '1')) || 1,
-      limit: parseInt(String(req.query.limit ?? '20')) || 20,
-      status: req.query.status ? (String(req.query.status) as any) : undefined,
-    })
+    const status = req.query.status ? (String(req.query.status) as any) : undefined
+    const page = parseInt(String(req.query.page ?? '1')) || 1
+    const limit = parseInt(String(req.query.limit ?? '20')) || 20
+    const result = await verificationService.getPendingVerifications({ status, page, limit })
     res.json({ success: true, data: result })
   } catch (err) {
     next(err)
@@ -182,15 +292,14 @@ export async function getVerifications(req: Request, res: Response, next: NextFu
 export async function approveVerification(req: Request, res: Response, next: NextFunction) {
   try {
     const adminId = req.user!.id
-    const verificationId = String(req.params.id)
-    const verification = await verificationService.approveVerification(verificationId, adminId)
+    const id = String(req.params.id)
+    const verification = await verificationService.approveVerification(id, adminId)
 
     await adminService.createAuditLog({
       adminId,
       action: 'VERIFICATION_APPROVED',
-      targetType: 'VERIFICATION',
-      targetId: verificationId,
-      metadata: { verificationType: verification.verificationType },
+      targetType: 'USER_VERIFICATION',
+      targetId: id,
     })
 
     res.json({ success: true, message: 'Verification approved.', data: { verification } })
@@ -202,22 +311,17 @@ export async function approveVerification(req: Request, res: Response, next: Nex
 export async function rejectVerification(req: Request, res: Response, next: NextFunction) {
   try {
     const adminId = req.user!.id
-    const verificationId = String(req.params.id)
+    const id = String(req.params.id)
     const { reason } = req.body
 
-    const verification = await verificationService.rejectVerification(
-      verificationId,
-      adminId,
-      String(reason || ''),
-    )
+    const verification = await verificationService.rejectVerification(id, adminId, reason ? String(reason) : 'Rejected by administrator')
 
     await adminService.createAuditLog({
       adminId,
       action: 'VERIFICATION_REJECTED',
-      targetType: 'VERIFICATION',
-      targetId: verificationId,
-      reason: reason ? String(reason) : undefined,
-      metadata: { verificationType: verification.verificationType },
+      targetType: 'USER_VERIFICATION',
+      targetId: id,
+      reason: reason ? String(reason) : 'Rejected by administrator',
     })
 
     res.json({ success: true, message: 'Verification rejected.', data: { verification } })
@@ -226,30 +330,27 @@ export async function rejectVerification(req: Request, res: Response, next: Next
   }
 }
 
-// ── Reviews ────────────────────────────────────────────────────────────────────
+// ── Reviews ───────────────────────────────────────────────────────────────────
 
 export async function getReviews(req: Request, res: Response, next: NextFunction) {
   try {
-    const result = await reviewService.getAllReviewsAdmin({
-      page: parseInt(String(req.query.page ?? '1')) || 1,
-      limit: parseInt(String(req.query.limit ?? '20')) || 20,
-      sellerId: req.query.sellerId ? String(req.query.sellerId) : undefined,
-    })
+    const page = parseInt(String(req.query.page ?? '1')) || 1
+    const limit = parseInt(String(req.query.limit ?? '20')) || 20
+    const result = await reviewService.getAllReviewsAdmin({ page, limit })
     res.json({ success: true, data: result })
   } catch (err) {
     next(err)
   }
 }
 
-// ── Audit Logs ─────────────────────────────────────────────────────────────────
+// ── Audit Logs ────────────────────────────────────────────────────────────────
 
 export async function getAuditLogs(req: Request, res: Response, next: NextFunction) {
   try {
-    const result = await adminService.getAuditLogs({
-      page: parseInt(String(req.query.page ?? '1')) || 1,
-      limit: parseInt(String(req.query.limit ?? '20')) || 20,
-      adminId: req.query.adminId ? String(req.query.adminId) : undefined,
-    })
+    const page = parseInt(String(req.query.page ?? '1')) || 1
+    const limit = parseInt(String(req.query.limit ?? '50')) || 50
+    const adminId = req.query.adminId ? String(req.query.adminId) : undefined
+    const result = await adminService.getAuditLogs({ page, limit, adminId })
     res.json({ success: true, data: result })
   } catch (err) {
     next(err)

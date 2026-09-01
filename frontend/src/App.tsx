@@ -63,6 +63,12 @@ import MyListingsPage from './pages/selling/MyListingsPage'
 
 // Admin pages
 import AdminPage from './pages/admin/AdminPage'
+import AdminAnalytics from './pages/admin/AdminAnalytics'
+import AdminOrders from './pages/admin/AdminOrders'
+import AdminPayments from './pages/admin/AdminPayments'
+import AdminBusinesses from './pages/admin/AdminBusinesses'
+import AdminAdvertisements from './pages/admin/AdminAdvertisements'
+import AdminRisk from './pages/admin/AdminRisk'
 import AdminMonetization from './pages/admin/AdminMonetization'
 import AdminReports from './pages/admin/AdminReports'
 import AdminUsers from './pages/admin/AdminUsers'
@@ -198,6 +204,66 @@ function App() {
               <ProtectedRoute>
                 <RoleRoute roles={['ADMIN']}>
                   <AdminPage />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/analytics"
+            element={
+              <ProtectedRoute>
+                <RoleRoute roles={['ADMIN']}>
+                  <AdminAnalytics />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/orders"
+            element={
+              <ProtectedRoute>
+                <RoleRoute roles={['ADMIN']}>
+                  <AdminOrders />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/payments"
+            element={
+              <ProtectedRoute>
+                <RoleRoute roles={['ADMIN']}>
+                  <AdminPayments />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/businesses"
+            element={
+              <ProtectedRoute>
+                <RoleRoute roles={['ADMIN']}>
+                  <AdminBusinesses />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/advertisements"
+            element={
+              <ProtectedRoute>
+                <RoleRoute roles={['ADMIN']}>
+                  <AdminAdvertisements />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/risk"
+            element={
+              <ProtectedRoute>
+                <RoleRoute roles={['ADMIN']}>
+                  <AdminRisk />
                 </RoleRoute>
               </ProtectedRoute>
             }
