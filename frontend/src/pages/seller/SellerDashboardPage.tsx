@@ -205,7 +205,7 @@ export default function SellerDashboardPage() {
       {/* ── Ethiopia Marketplace Safety & Tips ────────────────────────────── */}
       <div className="p-6 bg-stone-900 rounded-3xl text-white space-y-3">
         <h3 className="font-bold text-base text-amber-400">
-          💡 Tips for Successful Selling in Ethiopia
+          Tips for Successful Selling in Ethiopia
         </h3>
         <ul className="text-xs text-stone-300 space-y-2 list-disc list-inside">
           <li>

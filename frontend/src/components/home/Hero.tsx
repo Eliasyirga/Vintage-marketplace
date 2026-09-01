@@ -234,7 +234,7 @@ export default function Hero() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-1">
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-100">
-                        🛡️ Escrow Verified
+                        Escrow Verified
                       </span>
                     </div>
                     <p className="text-xs sm:text-sm font-bold text-stone-900 truncate mt-1">Ethiopian Wood Table</p>
@@ -251,7 +251,7 @@ export default function Hero() {
             {/* Live activity popup badge */}
             <div className="absolute -bottom-4 right-6 hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-900/90 text-white text-[11px] font-medium shadow-lg backdrop-blur-md border border-stone-700 z-30">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>⚡ Just sold: MacBook Air M2 (Bole)</span>
+              <span>Just sold: MacBook Air M2 (Bole)</span>
             </div>
 
           </div>

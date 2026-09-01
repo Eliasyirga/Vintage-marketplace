@@ -257,7 +257,7 @@ export default function VerifyRegistration() {
 
           <div>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 mb-3">
-              🔒 Step 2 of 3 — Security Check
+              Step 2 of 3 — Security Check
             </span>
             <h2 className="text-4xl xl:text-5xl font-extrabold text-white leading-tight tracking-tight">
               {success ? "You're all set!" : 'Verify your\nidentity'}
@@ -315,7 +315,7 @@ export default function VerifyRegistration() {
               <div className="w-20 h-20 rounded-full bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 className="w-10 h-10 text-emerald-500" />
               </div>
-              <h1 className="text-3xl font-extrabold text-stone-900 mb-2">✓ Account verified!</h1>
+              <h1 className="text-3xl font-extrabold text-stone-900 mb-2">Account Verified!</h1>
               <p className="text-stone-600 text-base mb-6 font-medium">
                 Welcome to Vintage, <span className="font-bold text-stone-900">{userName}</span>.
               </p>

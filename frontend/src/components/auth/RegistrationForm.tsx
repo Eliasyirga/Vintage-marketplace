@@ -146,8 +146,8 @@ export function RegistrationForm({ onSubmit, isLoading, serverErrors }: Registra
           }`}
         />
         {activeErrors.fullName && (
-          <p className="text-red-600 text-xs mt-1.5 font-semibold flex items-center gap-1">
-            <span>⚠</span> {activeErrors.fullName}
+          <p className="text-red-600 text-xs mt-1.5 font-semibold">
+            {activeErrors.fullName}
           </p>
         )}
       </div>
@@ -189,8 +189,8 @@ export function RegistrationForm({ onSubmit, isLoading, serverErrors }: Registra
             />
           </div>
           {activeErrors.email && (
-            <p className="text-red-600 text-xs mt-1.5 font-semibold flex items-center gap-1">
-              <span>⚠</span> {activeErrors.email}
+            <p className="text-red-600 text-xs mt-1.5 font-semibold">
+              {activeErrors.email}
             </p>
           )}
         </div>
@@ -200,8 +200,7 @@ export function RegistrationForm({ onSubmit, isLoading, serverErrors }: Registra
             Phone Number
           </label>
           <div className="flex gap-2">
-            <div className="flex items-center gap-1.5 bg-stone-100 border-2 border-stone-200 rounded-xl px-3.5 text-stone-700 text-sm font-bold whitespace-nowrap">
-              <span>🇪🇹</span>
+            <div className="flex items-center gap-1 bg-stone-100 border-2 border-stone-200 rounded-xl px-3.5 text-stone-700 text-sm font-bold whitespace-nowrap">
               <span>+251</span>
             </div>
             <input
@@ -223,8 +222,8 @@ export function RegistrationForm({ onSubmit, isLoading, serverErrors }: Registra
             />
           </div>
           {activeErrors.phone && (
-            <p className="text-red-600 text-xs mt-1.5 font-semibold flex items-center gap-1">
-              <span>⚠</span> {activeErrors.phone}
+            <p className="text-red-600 text-xs mt-1.5 font-semibold">
+              {activeErrors.phone}
             </p>
           )}
         </div>
@@ -283,8 +282,8 @@ export function RegistrationForm({ onSubmit, isLoading, serverErrors }: Registra
         )}
 
         {activeErrors.password && (
-          <p className="text-red-600 text-xs mt-1.5 font-semibold flex items-center gap-1">
-            <span>⚠</span> {activeErrors.password}
+          <p className="text-red-600 text-xs mt-1.5 font-semibold">
+            {activeErrors.password}
           </p>
         )}
       </div>
@@ -329,8 +328,8 @@ export function RegistrationForm({ onSubmit, isLoading, serverErrors }: Registra
           </div>
         </div>
         {activeErrors.confirmPassword && (
-          <p className="text-red-600 text-xs mt-1.5 font-semibold flex items-center gap-1">
-            <span>⚠</span> {activeErrors.confirmPassword}
+          <p className="text-red-600 text-xs mt-1.5 font-semibold">
+            {activeErrors.confirmPassword}
           </p>
         )}
       </div>

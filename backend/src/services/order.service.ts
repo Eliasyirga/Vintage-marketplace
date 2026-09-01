@@ -304,7 +304,7 @@ export async function createOrder(
   // 8. Notify Seller of New Order
   await sendOrderNotification({
     userId: createdOrder.seller_id,
-    title: '🔔 New Order Received!',
+    title: 'New Order Received',
     message: `Someone purchased your "${createdOrder.order_number}" (${input.fulfillmentMethod}).`,
     type: 'ORDER',
     link: `/orders/${createdOrder.id}`,
@@ -363,7 +363,7 @@ export async function handleOrderPaymentSuccess(
   // Notify seller to prepare or confirm meeting
   await sendOrderNotification({
     userId: order.seller_id,
-    title: '💰 Payment Confirmed for Order',
+    title: 'Payment Confirmed for Order',
     message: `Payment for order #${order.order_number} has been verified. Please prepare the product.`,
     type: 'PAYMENT',
     link: `/orders/${order.id}`,
@@ -372,7 +372,7 @@ export async function handleOrderPaymentSuccess(
   // Notify buyer of successful purchase
   await sendOrderNotification({
     userId: order.buyer_id,
-    title: '🎉 Order Confirmed!',
+    title: 'Order Confirmed',
     message: `Your payment for order #${order.order_number} was successful.`,
     type: 'PAYMENT',
     link: `/orders/${order.id}`,
@@ -633,7 +633,7 @@ export async function sellerConfirmOrder(orderId: string, sellerId: string): Pro
 
   await sendOrderNotification({
     userId: order.buyer_id,
-    title: 'Seller Confirmed Your Order 👍',
+    title: 'Seller Confirmed Your Order',
     message: `The seller has confirmed order #${order.order_number} and is preparing it.`,
     type: 'ORDER',
     link: `/orders/${order.id}`,
@@ -670,7 +670,7 @@ export async function sellerMarkReady(orderId: string, sellerId: string): Promis
 
   await sendOrderNotification({
     userId: order.buyer_id,
-    title: 'Item Ready for Delivery 📦',
+    title: 'Item Ready for Delivery',
     message: `Your item #${order.order_number} is packed and ready for dispatch.`,
     type: 'DELIVERY',
     link: `/orders/${order.id}`,
@@ -732,7 +732,7 @@ export async function completeOrder(orderId: string, buyerId: string): Promise<O
   // Notify Seller of payout/completion
   await sendOrderNotification({
     userId: order.seller_id,
-    title: '🎉 Order Completed & Payout Ready!',
+    title: 'Order Completed & Payout Ready',
     message: `Buyer confirmed receipt for order #${order.order_number}. Payout of ${order.seller_amount} ETB recorded.`,
     type: 'ORDER',
     link: `/orders/${order.id}`,

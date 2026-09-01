@@ -39,7 +39,7 @@ export default function FavoritesPage() {
 
     try {
       await removeFavorite(listingId)
-      toast.success('Removed from favorites', { icon: '💔' })
+      toast.success('Removed from favorites')
     } catch {
       toast.error('Failed to remove favorite.')
       loadFavorites(page)

@@ -8,16 +8,16 @@ import { sendOrderNotification } from './orderNotification.service'
 
 // Curated safe public meeting locations across Ethiopian cities (primarily Addis Ababa)
 export const SUGGESTED_PUBLIC_LOCATIONS = [
-  '📍 Bole Medhanialem Mall / Edna Mall area',
-  '📍 Kazanchis UNECA / Intercontinental Square',
-  '📍 Megenagna Century Mall / Zefmesh Grand Mall',
-  '📍 Piazza Commercial Bank / Cinema Empire',
-  '📍 Mexico Square / Federal Police Headquarters',
-  '📍 Sarbet Adams Pavilion / Vatican Embassy Square',
-  '📍 4 Kilo Addis Ababa University Main Gate',
-  '📍 22 Golagul Tower / Haya Hulet',
-  '📍 CMC Michael Square',
-  '📍 Gerji Imperial Hotel Roundabout',
+  'Bole Medhanialem Mall / Edna Mall area',
+  'Kazanchis UNECA / Intercontinental Square',
+  'Megenagna Century Mall / Zefmesh Grand Mall',
+  'Piazza Commercial Bank / Cinema Empire',
+  'Mexico Square / Federal Police Headquarters',
+  'Sarbet Adams Pavilion / Vatican Embassy Square',
+  '4 Kilo Addis Ababa University Main Gate',
+  '22 Golagul Tower / Haya Hulet',
+  'CMC Michael Square',
+  'Gerji Imperial Hotel Roundabout',
 ]
 
 /**
@@ -144,7 +144,7 @@ export async function confirmMeeting(
     const otherUserId = isSeller ? order.buyer_id : order.seller_id
     await sendOrderNotification({
       userId: otherUserId,
-      title: 'Meeting Confirmed! 🤝',
+      title: 'Meeting Confirmed',
       message: `Your meeting for order #${order.order_number} has been confirmed.`,
       type: 'MEETING',
       link: `/orders/${order.id}`,

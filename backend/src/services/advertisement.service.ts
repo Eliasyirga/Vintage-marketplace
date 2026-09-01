@@ -350,12 +350,30 @@ export async function createAdvertisement(
  * Transitions: PENDING_PAYMENT → PAYMENT_VERIFIED → PENDING_REVIEW
  */
 export async function handleAdPaymentSuccess(adId: string): Promise<void> {
-  const ad = await Advertisement.findByPk(adId)
+  const ad = await Advertisement.findByPk(adId, {
+    include: [{ model: Plan, as: 'plan' }],
+  })
   if (!ad) return
-  if (ad.status !== 'PENDING_PAYMENT') return
-  await ad.update({ status: 'PAYMENT_VERIFIED' })
-  // Auto-advance to PENDING_REVIEW so admins can immediately see it in the queue
-  await ad.update({ status: 'PENDING_REVIEW' })
+  if (ad.status === 'ACTIVE') return
+
+  const durationDays = (ad as any).plan?.duration_days ?? 7
+  const now = new Date()
+  const endAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000)
+
+  await ad.update({
+    status: 'ACTIVE',
+    start_at: now,
+    end_at: endAt,
+    reviewed_at: now,
+  })
+
+  await entitlementService.grantEntitlement({
+    userId: ad.advertiser_id,
+    type: 'ADVERTISEMENT',
+    durationDays,
+    paymentId: ad.payment_id,
+    metadata: { advertisementId: ad.id, placement: ad.placement },
+  })
 }
 
 // ── Single ad lookup ──────────────────────────────────────────────────────────

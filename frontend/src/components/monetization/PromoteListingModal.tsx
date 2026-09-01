@@ -84,7 +84,7 @@ export function PromoteListingModal({ isOpen, onClose, listing }: PromoteListing
                 }`}
               >
                 <Rocket className="w-4 h-4" />
-                <span>🚀 Boost Listing</span>
+                <span>Boost Listing</span>
               </button>
 
               <button
@@ -101,7 +101,7 @@ export function PromoteListingModal({ isOpen, onClose, listing }: PromoteListing
                 }`}
               >
                 <Sparkles className="w-4 h-4" />
-                <span>⭐ Featured Product</span>
+                <span>Featured Product</span>
               </button>
             </div>
 

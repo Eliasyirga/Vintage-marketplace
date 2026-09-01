@@ -241,7 +241,7 @@ export default function AdvertisePage() {
                     <div className="pt-4 border-t border-stone-100 flex items-center justify-between text-[11px] font-bold text-stone-500">
                       <span>{info.dimensions}</span>
                       <span className="text-amber-700 font-extrabold">
-                        {isSelected ? 'Selected ✓' : 'Select →'}
+                        {isSelected ? 'Selected' : 'Select →'}
                       </span>
                     </div>
                   </button>

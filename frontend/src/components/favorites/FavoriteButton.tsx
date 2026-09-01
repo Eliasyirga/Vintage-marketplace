@@ -60,13 +60,11 @@ export function FavoriteButton({
       if (nextState) {
         await addFavorite(listingId)
         toast.success('Saved to Favorites', {
-          icon: '❤️',
           id: `fav-${listingId}`,
         })
       } else {
         await removeFavorite(listingId)
         toast.success('Removed from Favorites', {
-          icon: '💔',
           id: `fav-${listingId}`,
         })
       }

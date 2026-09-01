@@ -125,8 +125,8 @@ export const MeetingDetails: React.FC<MeetingDetailsProps> = ({
           </p>
           <div className="flex items-center gap-2 text-stone-800 font-semibold">
             <span>
-              {meeting.buyerConfirmed ? '✓ Buyer Ready' : '⏳ Buyer Pending'} •{' '}
-              {meeting.sellerConfirmed ? '✓ Seller Ready' : '⏳ Seller Pending'}
+              {meeting.buyerConfirmed ? 'Buyer Confirmed' : 'Buyer Pending'} •{' '}
+              {meeting.sellerConfirmed ? 'Seller Confirmed' : 'Seller Pending'}
             </span>
           </div>
         </div>

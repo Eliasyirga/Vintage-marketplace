@@ -33,7 +33,7 @@ export default function Pricing() {
 
   const handleSelectPlan = (plan: Plan) => {
     if (!isAuthenticated) {
-      toast('Please log in to upgrade your seller account.', { icon: '🔒' })
+      toast('Please log in to upgrade your seller account.')
       navigate('/login?redirect=/pricing')
       return
     }

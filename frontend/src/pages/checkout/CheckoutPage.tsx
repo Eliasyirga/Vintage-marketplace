@@ -45,7 +45,7 @@ export default function CheckoutPage() {
   })
 
   const [meetingInfo, setMeetingInfo] = useState<MeetingInput>({
-    meetingLocation: '📍 Bole Medhanialem Mall / Edna Mall area',
+    meetingLocation: 'Bole Medhanialem Mall / Edna Mall area',
     meetingDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     meetingTime: '14:00',
     buyerNote: '',

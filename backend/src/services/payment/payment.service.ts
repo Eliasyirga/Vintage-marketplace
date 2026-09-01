@@ -410,15 +410,34 @@ export async function verifyAndProcessPayment(
 
       case 'ADVERTISEMENT':
         if (meta.advertisementId) {
-          const ad = await Advertisement.findByPk(meta.advertisementId, { transaction: t })
+          const ad = await Advertisement.findByPk(meta.advertisementId, {
+            include: [{ model: Plan, as: 'plan' }],
+            transaction: t,
+          })
           if (ad) {
+            const durationDays = (ad as any).plan?.duration_days ?? 7
+            const now = new Date()
+            const endAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000)
+
             await ad.update(
               {
-                status: 'PENDING_REVIEW',
+                status: 'ACTIVE',
                 payment_id: payment.id,
+                start_at: now,
+                end_at: endAt,
+                reviewed_at: now,
               },
               { transaction: t },
             )
+
+            await entitlementService.grantEntitlement({
+              userId: ad.advertiser_id,
+              type: 'ADVERTISEMENT',
+              durationDays,
+              paymentId: payment.id,
+              metadata: { advertisementId: ad.id, placement: ad.placement },
+            })
+
             activated = true
           }
         }
@@ -473,7 +492,7 @@ export async function verifyAndProcessPayment(
             // Send non-blocking notifications
             sendOrderNotification({
               userId: order.seller_id,
-              title: '💰 Payment Received for Order',
+              title: 'Payment Received for Order',
               message: `Payment for order #${order.order_number} has been verified. Please prepare the product.`,
               type: 'PAYMENT',
               link: `/orders/${order.id}`,
@@ -481,7 +500,7 @@ export async function verifyAndProcessPayment(
 
             sendOrderNotification({
               userId: order.buyer_id,
-              title: '🎉 Payment Successful!',
+              title: 'Payment Successful',
               message: `Your payment for order #${order.order_number} was verified successfully.`,
               type: 'PAYMENT',
               link: `/orders/${order.id}`,

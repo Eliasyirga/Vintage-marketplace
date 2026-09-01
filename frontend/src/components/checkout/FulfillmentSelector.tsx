@@ -46,7 +46,7 @@ export const FulfillmentSelector: React.FC<FulfillmentSelectorProps> = ({
 
           <div className="mt-4 space-y-1.5">
             <h4 className="font-bold text-stone-900 text-base flex items-center gap-1.5">
-              <span>🚚 Delivery</span>
+              <span>Delivery</span>
             </h4>
             <p className="text-xs text-stone-600 leading-relaxed font-medium">
               Have the product safely delivered to your doorstep or neighborhood in Addis Ababa & regional cities.
@@ -84,7 +84,7 @@ export const FulfillmentSelector: React.FC<FulfillmentSelectorProps> = ({
 
           <div className="mt-4 space-y-1.5">
             <h4 className="font-bold text-stone-900 text-base flex items-center gap-1.5">
-              <span>🤝 Meet in Person</span>
+              <span>Meet in Person</span>
             </h4>
             <p className="text-xs text-stone-600 leading-relaxed font-medium">
               Meet the seller in a safe public spot, inspect the product in-person before confirming purchase.

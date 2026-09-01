@@ -36,7 +36,7 @@ export default function PaymentSuccessPage() {
               <Sparkles className="w-3 h-3" /> Chapa Verified
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">
-              Payment Successful ✓
+              Payment Successful
             </h1>
             <p className="text-xs sm:text-sm text-stone-500 mt-1.5 max-w-sm mx-auto">
               Your payment has been successfully verified. All associated services and entitlements are now active.

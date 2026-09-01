@@ -105,7 +105,7 @@ export default function Register() {
         <div className="relative z-10 space-y-8 my-auto py-8">
           <div>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 mb-4">
-              🚀 Join Ethiopia's #1 Marketplace
+              Join Ethiopia's #1 Marketplace
             </span>
             <h2 className="text-4xl xl:text-5xl font-extrabold text-white leading-tight tracking-tight">
               Create your free<br />

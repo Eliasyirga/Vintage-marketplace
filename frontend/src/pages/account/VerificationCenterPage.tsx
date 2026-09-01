@@ -93,7 +93,7 @@ export default function VerificationCenterPage() {
               </h3>
               <p className="text-xs text-amber-200/80">
                 {verifiedCount >= totalActive
-                  ? '🌟 Excellent! You have the highest trust rating on the platform.'
+                  ? 'Excellent! You have the highest trust rating on the platform.'
                   : 'Complete more verifications to unlock verified badge on your listings.'}
               </p>
             </div>
@@ -168,14 +168,16 @@ export default function VerificationCenterPage() {
                 </div>
               </div>
 
-              <p className="text-xs text-stone-600 leading-relaxed">{item.description}</p>
+              <p className="text-xs text-stone-500 leading-relaxed">{item.description}</p>
 
-              <div className="pt-2 border-t border-stone-100 flex items-center justify-between">
+              <div className="pt-3 border-t border-stone-100 flex items-center justify-between">
                 {isVerified ? (
-                  <span className="text-xs font-semibold text-emerald-600">✓ Security active</span>
+                  <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Security Active
+                  </span>
                 ) : isComingSoon ? (
                   <span className="text-xs font-semibold text-stone-400 italic">
-                    🔔 We'll notify you when this becomes available
+                    We'll notify you when available
                   </span>
                 ) : item.id === 'fayda' ? (
                   <button

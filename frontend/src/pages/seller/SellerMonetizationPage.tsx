@@ -146,7 +146,7 @@ export default function SellerMonetizationPage() {
               <div className="mt-6 space-y-3">
                 <div className="p-3.5 rounded-xl bg-stone-950 border border-stone-800/80 flex items-center justify-between">
                   <div>
-                    <span className="font-semibold text-sm text-white">🚀 Boost Listing</span>
+                    <span className="font-semibold text-sm text-white">Boost Listing</span>
                     <p className="text-xs text-stone-400">From 100 ETB for 3 Days</p>
                   </div>
                   <Link
@@ -159,7 +159,7 @@ export default function SellerMonetizationPage() {
 
                 <div className="p-3.5 rounded-xl bg-stone-950 border border-stone-800/80 flex items-center justify-between">
                   <div>
-                    <span className="font-semibold text-sm text-white">⭐ Featured Listing</span>
+                    <span className="font-semibold text-sm text-white">Featured Listing</span>
                     <p className="text-xs text-stone-400">From 100 ETB for 3 Days</p>
                   </div>
                   <Link

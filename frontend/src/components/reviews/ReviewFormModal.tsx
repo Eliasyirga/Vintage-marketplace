@@ -82,11 +82,11 @@ export function ReviewFormModal({
             <span className="text-xs font-bold text-amber-900">Your Overall Rating</span>
             <RatingStars rating={rating} size="lg" interactive onChange={setRating} />
             <span className="text-xs font-bold text-amber-700">
-              {rating === 5 && '★★★★★ Outstanding (5/5)'}
-              {rating === 4 && '★★★★☆ Good (4/5)'}
-              {rating === 3 && '★★★☆☆ Average (3/5)'}
-              {rating === 2 && '★★☆☆☆ Below Average (2/5)'}
-              {rating === 1 && '★☆☆☆☆ Poor (1/5)'}
+              {rating === 5 && 'Outstanding (5/5)'}
+              {rating === 4 && 'Good (4/5)'}
+              {rating === 3 && 'Average (3/5)'}
+              {rating === 2 && 'Below Average (2/5)'}
+              {rating === 1 && 'Poor (1/5)'}
             </span>
           </div>
 

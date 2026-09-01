@@ -10,12 +10,12 @@ interface MeetingFormProps {
 }
 
 const DEFAULT_LOCATIONS = [
-  '📍 Bole Medhanialem Mall / Edna Mall area',
-  '📍 Kazanchis UNECA / Intercontinental Square',
-  '📍 Megenagna Century Mall / Zefmesh Grand Mall',
-  '📍 Piazza Commercial Bank / Cinema Empire',
-  '📍 Mexico Square / Federal Police Headquarters',
-  '📍 Sarbet Adams Pavilion / Vatican Embassy Square',
+  'Bole Medhanialem Mall / Edna Mall area',
+  'Kazanchis UNECA / Intercontinental Square',
+  'Megenagna Century Mall / Zefmesh Grand Mall',
+  'Piazza Commercial Bank / Cinema Empire',
+  'Mexico Square / Federal Police Headquarters',
+  'Sarbet Adams Pavilion / Vatican Embassy Square',
 ]
 
 export const MeetingForm: React.FC<MeetingFormProps> = ({

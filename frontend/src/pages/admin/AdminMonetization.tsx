@@ -448,7 +448,7 @@ export default function AdminMonetization() {
                                 : 'bg-stone-800 text-stone-400'
                             }`}
                           >
-                            {activeAdInSlot ? '🟢 Occupied (1/1)' : '⚪ Available (0/1)'}
+                            {activeAdInSlot ? 'Occupied (1/1)' : 'Available (0/1)'}
                           </span>
                         </div>
 

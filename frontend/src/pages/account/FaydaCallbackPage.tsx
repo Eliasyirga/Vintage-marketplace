@@ -23,7 +23,7 @@ export default function FaydaCallbackPage() {
       if (isVerified) {
         setStatus('success')
         await refreshUser()
-        toast.success('🎉 Fayda identity verification successful! Your profile is now verified.')
+        toast.success('Fayda identity verification successful! Your profile is now verified.')
         setTimeout(() => {
           navigate('/account/verification', { replace: true })
         }, 2000)

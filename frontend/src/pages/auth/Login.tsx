@@ -98,7 +98,7 @@ export default function Login() {
         <div className="relative z-10 space-y-8 my-auto py-8">
           <div>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 mb-4">
-              ✨ Welcome Back
+              Welcome Back
             </span>
             <h2 className="text-4xl xl:text-5xl font-extrabold text-white leading-tight tracking-tight">
               Sign in to your<br />
@@ -212,8 +212,8 @@ export default function Login() {
                 />
               </div>
               {errors.identifier && (
-                <p className="text-red-600 text-xs mt-1.5 font-semibold flex items-center gap-1">
-                  <span>⚠</span> {errors.identifier}
+                <p className="text-red-600 text-xs mt-1.5 font-semibold">
+                  {errors.identifier}
                 </p>
               )}
             </div>
@@ -253,8 +253,8 @@ export default function Login() {
                 </button>
               </div>
               {errors.password && (
-                <p className="text-red-600 text-xs mt-1.5 font-semibold flex items-center gap-1">
-                  <span>⚠</span> {errors.password}
+                <p className="text-red-600 text-xs mt-1.5 font-semibold">
+                  {errors.password}
                 </p>
               )}
             </div>

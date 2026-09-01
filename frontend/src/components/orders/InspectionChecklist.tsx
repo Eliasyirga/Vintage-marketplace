@@ -98,7 +98,7 @@ export const InspectionChecklist: React.FC<InspectionChecklistProps> = ({
             <Square className="w-5 h-5 text-stone-400 flex-shrink-0" />
           )}
           <span className="text-xs font-bold text-stone-800">
-            ✓ Product physically received and handed over
+            Product physically received and handed over
           </span>
         </div>
 
@@ -116,7 +116,7 @@ export const InspectionChecklist: React.FC<InspectionChecklistProps> = ({
             <Square className="w-5 h-5 text-stone-400 flex-shrink-0" />
           )}
           <span className="text-xs font-bold text-stone-800">
-            ✓ Condition and quality match listing photos & description
+            Condition and quality match listing photos & description
           </span>
         </div>
 
@@ -134,7 +134,7 @@ export const InspectionChecklist: React.FC<InspectionChecklistProps> = ({
             <Square className="w-5 h-5 text-stone-400 flex-shrink-0" />
           )}
           <span className="text-xs font-bold text-stone-800">
-            ✓ All stated accessories / packaging are included
+            All stated accessories / packaging are included
           </span>
         </div>
 
@@ -152,7 +152,7 @@ export const InspectionChecklist: React.FC<InspectionChecklistProps> = ({
             <Square className="w-5 h-5 text-stone-400 flex-shrink-0" />
           )}
           <span className="text-xs font-bold text-stone-800">
-            ✓ Product powers on / works as expected
+            Product powers on / works as expected
           </span>
         </div>
       </div>
