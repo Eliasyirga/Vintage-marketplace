@@ -170,7 +170,11 @@ export async function createPayment(
   const clientBase = (env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, '')
   const apiBase = (env.API_PUBLIC_URL || 'http://localhost:5000').replace(/\/+$/, '')
 
-  const returnUrl = input.returnUrl || `${clientBase}/payment/processing?ref=${encodeURIComponent(payment.reference)}`
+  let returnUrl = input.returnUrl || `${clientBase}/payment/processing?ref=${encodeURIComponent(payment.reference)}`
+  if (input.returnUrl && !input.returnUrl.includes('ref=')) {
+    const separator = returnUrl.includes('?') ? '&' : '?'
+    returnUrl = `${returnUrl}${separator}ref=${encodeURIComponent(payment.reference)}`
+  }
   const callbackUrl = input.callbackUrl || `${apiBase}/api/payments/chapa/callback`
 
   const provider = getPaymentProvider(resolvedProvider)

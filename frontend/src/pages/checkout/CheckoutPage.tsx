@@ -161,6 +161,7 @@ export default function CheckoutPage() {
         provider: 'CHAPA',
         deliveryInfo: fulfillmentMethod === 'DELIVERY' ? deliveryInfo : undefined,
         meetingInfo: fulfillmentMethod === 'MEET_IN_PERSON' ? meetingInfo : undefined,
+        returnUrl: `${window.location.origin}/payment/processing`,
       })
 
       toast.success('Order initialized! Redirecting to secure Chapa checkout...')
