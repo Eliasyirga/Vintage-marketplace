@@ -138,6 +138,40 @@ export async function getAvailablePlacements(): Promise<{
 }
 
 /**
+ * Dynamically promote any paid ads that entered PENDING_REVIEW / PAYMENT_VERIFIED to ACTIVE.
+ */
+export async function syncPendingPaidAds(): Promise<void> {
+  try {
+    const pendingPaidAds = await Advertisement.findAll({
+      where: {
+        status: { [Op.in]: ['PENDING_REVIEW', 'PAYMENT_VERIFIED'] },
+      },
+      include: [
+        { model: Payment, as: 'payment' },
+        { model: Plan, as: 'plan' },
+      ],
+    })
+
+    const now = new Date()
+    for (const ad of pendingPaidAds) {
+      const payment = (ad as any).payment
+      if (payment && payment.status === 'SUCCESS') {
+        const durationDays = (ad as any).plan?.duration_days ?? 7
+        const endAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000)
+        await ad.update({
+          status: 'ACTIVE',
+          start_at: ad.start_at || now,
+          end_at: ad.end_at || endAt,
+          reviewed_at: ad.reviewed_at || now,
+        })
+      }
+    }
+  } catch (err) {
+    console.error('Failed to sync pending paid ads:', err)
+  }
+}
+
+/**
  * Fetch all active ads for a specific placement slot (ordered by priority DESC).
  * Returns empty array if the slot is unbooked.
  */
@@ -147,6 +181,8 @@ export async function getActiveAdForPlacement(
   advertiserName: string
   advertiserAvatar: string | null
 })[]> {
+  await syncPendingPaidAds()
+
   if (!VALID_PLACEMENTS.includes(placement)) {
     throw Object.assign(
       new Error(
@@ -210,6 +246,7 @@ export async function getActiveAdForPlacement(
  * Returns an empty array for any unbooked slot (frontend renders a fallback CTA).
  */
 export async function getActiveAdSlots(): Promise<ActiveAdSlotsResponse> {
+  await syncPendingPaidAds()
   const now = new Date()
   const activeAds = await Advertisement.findAll({
     where: {
@@ -418,6 +455,7 @@ export async function getAdvertisementById(
 export async function getAdvertisementsByUser(
   advertiserId: string,
 ): Promise<Advertisement[]> {
+  await syncPendingPaidAds()
   return Advertisement.findAll({
     where: { advertiser_id: advertiserId },
     include: [

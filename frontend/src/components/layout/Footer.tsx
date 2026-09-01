@@ -64,7 +64,36 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Col 2: Support */}
+          {/* Col 2: Advertising & Growth */}
+          <div>
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-4">
+              Advertising
+            </h4>
+            <ul className="space-y-2.5 font-medium">
+              <li>
+                <Link to="/advertise" className="hover:text-amber-400 transition-colors">
+                  Advertise on Vintage
+                </Link>
+              </li>
+              <li>
+                <Link to="/advertise/my-ads" className="hover:text-amber-400 transition-colors">
+                  Advertiser Portal
+                </Link>
+              </li>
+              <li>
+                <Link to="/pricing" className="hover:text-amber-400 transition-colors">
+                  Plans & Pricing
+                </Link>
+              </li>
+              <li>
+                <Link to="/seller/monetization" className="hover:text-amber-400 transition-colors">
+                  Promote Listing
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Col 3: Support */}
           <div>
             <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-4">
               Support
@@ -83,27 +112,6 @@ export function Footer() {
               </li>
               <li>
                 <span className="text-stone-500 cursor-not-allowed">Community Guidelines</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Col 3: Company */}
-          <div>
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-4">
-              Company
-            </h4>
-            <ul className="space-y-2.5 font-medium">
-              <li>
-                <span className="text-stone-500 cursor-not-allowed">About Vintage</span>
-              </li>
-              <li>
-                <span className="text-stone-500 cursor-not-allowed">Careers</span>
-              </li>
-              <li>
-                <span className="text-stone-500 cursor-not-allowed">Terms of Service</span>
-              </li>
-              <li>
-                <span className="text-stone-500 cursor-not-allowed">Privacy Policy</span>
               </li>
             </ul>
           </div>

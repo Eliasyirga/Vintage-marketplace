@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import {
   Search, PlusCircle, Menu, X, User as UserIcon, LogOut,
-  Heart, MessageSquare, Package, Sparkles, Bell, ChevronDown,
+  Heart, MessageSquare, Package, Sparkles, Bell, ChevronDown, Megaphone,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 
@@ -168,6 +168,7 @@ export function Navbar() {
                         { to: `/seller/${user?.id}`, icon: UserIcon, label: 'Public Seller Profile' },
                         { to: '/seller/profile/edit', icon: UserIcon, label: 'Edit Profile' },
                         { to: '/my-listings', icon: Package, label: 'My Listings' },
+                        { to: '/advertise/my-ads', icon: Megaphone, label: 'Advertiser Portal / My Ads', iconClass: 'text-amber-600 font-bold' },
                         { to: '/seller/monetization', icon: Sparkles, label: 'Growth & Promotions', iconClass: 'text-amber-500' },
                         { to: '/seller/analytics', icon: Sparkles, label: 'Seller Analytics', iconClass: 'text-blue-500' },
                         { to: '/account/payments', icon: Package, label: 'Billing & Receipts', iconClass: 'text-emerald-500' },
