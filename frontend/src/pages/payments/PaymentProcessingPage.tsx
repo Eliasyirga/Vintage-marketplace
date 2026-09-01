@@ -10,35 +10,77 @@ export default function PaymentProcessingPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
-  const reference =
-    searchParams.get('ref') ||
-    searchParams.get('tx_ref') ||
-    searchParams.get('trx_ref') ||
-    searchParams.get('reference') ||
-    ''
-
-  const statusParam = searchParams.get('status') || ''
-
+  const [resolvedReference, setResolvedReference] = useState<string>('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!reference) {
-      setErrorMessage('No payment reference found in URL.')
-      return
-    }
-
-    if (statusParam === 'cancelled' || statusParam === 'canceled') {
-      navigate(`/payment/cancelled?ref=${encodeURIComponent(reference)}`, { replace: true })
-      return
-    }
-
     let isMounted = true
 
-    async function verify() {
+    async function resolveAndVerify() {
+      // 1. Try resolving reference from URL query params (Chapa, Telebirr, and standard formats)
+      const paramRef =
+        searchParams.get('ref') ||
+        searchParams.get('tx_ref') ||
+        searchParams.get('trx_ref') ||
+        searchParams.get('reference') ||
+        searchParams.get('transaction_id') ||
+        searchParams.get('trans_id') ||
+        searchParams.get('checkout_ref') ||
+        searchParams.get('id') ||
+        ''
+
+      // 2. Try resolving reference from browser session/local storage
+      const storageRef =
+        sessionStorage.getItem('pending_payment_ref') ||
+        localStorage.getItem('pending_payment_ref') ||
+        ''
+
+      let targetRef = paramRef || storageRef
+
+      // 3. If still not found, check the user's latest payment history as an intelligent fallback
+      if (!targetRef) {
+        try {
+          const history = await paymentService.getMyPaymentHistory()
+          if (history && history.length > 0) {
+            // Check for most recent PENDING payment or latest payment created within last 20 mins
+            const latestPending = history.find((p) => p.status === 'PENDING')
+            const latest = latestPending || history[0]
+            if (latest && latest.reference) {
+              targetRef = latest.reference
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (!isMounted) return
+
+      if (!targetRef) {
+        setErrorMessage('No payment reference found in URL or session.')
+        return
+      }
+
+      setResolvedReference(targetRef)
+
+      const statusParam = searchParams.get('status') || ''
+      if (statusParam === 'cancelled' || statusParam === 'canceled') {
+        try {
+          sessionStorage.removeItem('pending_payment_ref')
+          localStorage.removeItem('pending_payment_ref')
+        } catch (_) {}
+        navigate(`/payment/cancelled?ref=${encodeURIComponent(targetRef)}`, { replace: true })
+        return
+      }
+
       try {
-        const result = await paymentService.verifyPayment(reference)
+        const result = await paymentService.verifyPayment(targetRef)
 
         if (!isMounted) return
+
+        // Clean up storage
+        try {
+          sessionStorage.removeItem('pending_payment_ref')
+          localStorage.removeItem('pending_payment_ref')
+        } catch (_) {}
 
         if (result.payment.status === 'SUCCESS') {
           toast.success('Payment verified successfully!')
@@ -48,14 +90,14 @@ export default function PaymentProcessingPage() {
           const adId = meta.advertisementId || ''
 
           navigate(
-            `/payment/success?ref=${encodeURIComponent(reference)}&purpose=${encodeURIComponent(
+            `/payment/success?ref=${encodeURIComponent(targetRef)}&purpose=${encodeURIComponent(
               purpose,
             )}&orderId=${encodeURIComponent(orderId)}&adId=${encodeURIComponent(adId)}`,
             { replace: true },
           )
         } else {
           navigate(
-            `/payment/failed?ref=${encodeURIComponent(reference)}&message=${encodeURIComponent(
+            `/payment/failed?ref=${encodeURIComponent(targetRef)}&message=${encodeURIComponent(
               'Payment was not completed successfully.',
             )}`,
             { replace: true },
@@ -65,18 +107,18 @@ export default function PaymentProcessingPage() {
         if (!isMounted) return
         const msg = err.response?.data?.message || err.message || 'Unable to verify payment status.'
         navigate(
-          `/payment/failed?ref=${encodeURIComponent(reference)}&message=${encodeURIComponent(msg)}`,
+          `/payment/failed?ref=${encodeURIComponent(targetRef)}&message=${encodeURIComponent(msg)}`,
           { replace: true },
         )
       }
     }
 
-    verify()
+    resolveAndVerify()
 
     return () => {
       isMounted = false
     }
-  }, [reference, statusParam, navigate])
+  }, [searchParams, navigate])
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-50 text-stone-900 selection:bg-amber-500 selection:text-white">
@@ -118,7 +160,7 @@ export default function PaymentProcessingPage() {
               <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 text-xs space-y-1 text-left font-mono">
                 <div className="flex justify-between text-stone-500 text-[11px]">
                   <span>Reference:</span>
-                  <span className="text-stone-900 font-bold truncate max-w-[180px]">{reference}</span>
+                  <span className="text-stone-900 font-bold truncate max-w-[180px]">{resolvedReference || 'Resolving...'}</span>
                 </div>
                 <div className="flex justify-between text-stone-500 text-[11px]">
                   <span>Security:</span>

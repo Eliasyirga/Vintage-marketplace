@@ -53,6 +53,14 @@ export function CheckoutModal({
         returnUrl: `${window.location.origin}/payment/processing`,
       })
 
+      const pendingRef = res.payment?.reference || res.providerReference
+      if (pendingRef) {
+        try {
+          sessionStorage.setItem('pending_payment_ref', pendingRef)
+          localStorage.setItem('pending_payment_ref', pendingRef)
+        } catch (_) {}
+      }
+
       onSuccess?.()
       if (res.checkoutUrl) {
         toast.success('Redirecting to secure Chapa payment...')

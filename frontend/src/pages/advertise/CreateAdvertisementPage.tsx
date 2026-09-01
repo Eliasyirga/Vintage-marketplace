@@ -174,6 +174,14 @@ export default function CreateAdvertisementPage() {
         returnUrl: `${window.location.origin}/payment/processing`,
       })
 
+      const pendingRef = paymentRes.payment?.reference || paymentRes.providerReference
+      if (pendingRef) {
+        try {
+          sessionStorage.setItem('pending_payment_ref', pendingRef)
+          localStorage.setItem('pending_payment_ref', pendingRef)
+        } catch (_) {}
+      }
+
       toast.success('Advertisement creative saved! Redirecting to Chapa payment...')
 
       if (paymentRes.checkoutUrl) {

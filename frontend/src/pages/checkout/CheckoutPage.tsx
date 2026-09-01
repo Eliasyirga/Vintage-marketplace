@@ -164,6 +164,18 @@ export default function CheckoutPage() {
         returnUrl: `${window.location.origin}/payment/processing`,
       })
 
+      // Store pending payment reference as resilient fallback
+      const pendingRef =
+        result.payment?.reference ||
+        (result.order as any)?.metadata?.paymentReference ||
+        result.paymentInit?.providerReference
+      if (pendingRef) {
+        try {
+          sessionStorage.setItem('pending_payment_ref', pendingRef)
+          localStorage.setItem('pending_payment_ref', pendingRef)
+        } catch (_) {}
+      }
+
       toast.success('Order initialized! Redirecting to secure Chapa checkout...')
 
       // Redirect to Chapa hosted payment checkout
