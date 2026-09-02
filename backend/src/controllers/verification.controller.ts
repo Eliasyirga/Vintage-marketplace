@@ -42,6 +42,13 @@ export async function initiateFayda(req: Request, res: Response, next: NextFunct
   try {
     const userId = req.user!.id
     const result = await verificationService.initiateFaydaVerification(userId)
+    
+    // If request is served in production or on Render, sanitize localhost URLs
+    const isLive = req.hostname.includes('render.com') || process.env.NODE_ENV === 'production' || process.env.RENDER
+    if (isLive && result.redirectUrl.includes('localhost:5000')) {
+      result.redirectUrl = result.redirectUrl.replace('http://localhost:5000', 'https://vintage-marketplace-6.onrender.com')
+    }
+
     res.json({
       success: true,
       message: 'Fayda verification session initiated.',
@@ -54,10 +61,12 @@ export async function initiateFayda(req: Request, res: Response, next: NextFunct
 
 export async function faydaCallback(req: Request, res: Response, _next: NextFunction) {
   const { code, state, error, error_description } = req.query
-  const defaultClient = process.env.NODE_ENV === 'production' || process.env.RENDER
-    ? 'https://vintage-marketplace-tau.vercel.app'
-    : 'http://localhost:5173'
-  const clientUrl = (process.env.CLIENT_URL || defaultClient).replace(/\/$/, '')
+  const isLive = req.hostname.includes('render.com') || process.env.NODE_ENV === 'production' || process.env.RENDER
+  let clientUrl = process.env.CLIENT_URL || (isLive ? 'https://vintage-marketplace-tau.vercel.app' : 'http://localhost:5173')
+  if (isLive && clientUrl.includes('localhost')) {
+    clientUrl = 'https://vintage-marketplace-tau.vercel.app'
+  }
+  clientUrl = clientUrl.replace(/\/$/, '')
 
   if (error) {
     const reason = encodeURIComponent(String(error_description || error))

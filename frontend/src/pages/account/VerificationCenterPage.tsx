@@ -30,7 +30,10 @@ export default function VerificationCenterPage() {
   const handleStartFayda = async () => {
     try {
       setIsFaydaLoading(true)
-      const { redirectUrl } = await verificationService.initiateFaydaVerification()
+      let { redirectUrl } = await verificationService.initiateFaydaVerification()
+      if (!window.location.hostname.includes('localhost') && redirectUrl.includes('localhost:5000')) {
+        redirectUrl = redirectUrl.replace('http://localhost:5000', 'https://vintage-marketplace-6.onrender.com')
+      }
       // Redirect to official Fayda OIDC authorization endpoint
       window.location.href = redirectUrl
     } catch (err: any) {
