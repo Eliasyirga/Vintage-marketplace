@@ -194,7 +194,7 @@ export default function AdminOrders() {
                   {orders.map((order) => (
                     <tr key={order.id} className="hover:bg-stone-50/60 transition-colors">
                       <td className="py-3.5 px-4 font-mono font-bold text-stone-900">
-                        {order.order_number || order.id.slice(0, 8)}
+                        {order.order_number || (order.id ? order.id.slice(0, 8) : 'Order')}
                       </td>
                       <td className="py-3.5 px-4 max-w-[200px]">
                         <span className="font-bold text-stone-900 truncate block">
@@ -288,7 +288,7 @@ export default function AdminOrders() {
                   Order Details
                 </span>
                 <h3 className="text-lg font-black text-stone-900">
-                  Order #{selectedOrder.order_number || selectedOrder.id.slice(0, 8)}
+                  Order #{selectedOrder.order_number || (selectedOrder.id ? selectedOrder.id.slice(0, 8) : '')}
                 </h3>
               </div>
               <button

@@ -186,15 +186,15 @@ export default function AdminUsers() {
                             {u.avatarUrl ? (
                               <img src={u.avatarUrl} alt="" className="w-full h-full object-cover rounded-xl" />
                             ) : (
-                              u.fullName.charAt(0).toUpperCase()
+                              (u.fullName || u.email || 'U').charAt(0).toUpperCase()
                             )}
                           </div>
                           <div>
                             <span className="font-extrabold text-stone-900 block truncate max-w-[150px]">
-                              {u.fullName}
+                              {u.fullName || 'User'}
                             </span>
                             <span className="font-mono text-[10px] text-stone-400 block truncate max-w-[150px]">
-                              {u.id.slice(0, 8)}
+                              {u.id ? u.id.slice(0, 8) : ''}
                             </span>
                           </div>
                         </div>
@@ -323,12 +323,12 @@ export default function AdminUsers() {
             <div className="flex items-center justify-between border-b border-stone-100 pb-4">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-2xl bg-amber-500 text-stone-950 font-black text-base flex items-center justify-center shadow-md shadow-amber-500/20">
-                  {selectedUser.user.fullName.charAt(0).toUpperCase()}
+                  {(selectedUser.user.fullName || selectedUser.user.email || 'U').charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-stone-900">{selectedUser.user.fullName}</h3>
+                  <h3 className="text-lg font-black text-stone-900">{selectedUser.user.fullName || 'Registered User'}</h3>
                   <p className="text-xs text-stone-500 font-mono">
-                    {selectedUser.user.email || selectedUser.user.phone} &bull; ID: {selectedUser.user.id.slice(0, 8)}
+                    {selectedUser.user.email || selectedUser.user.phone || 'No contact'} &bull; ID: {selectedUser.user.id ? selectedUser.user.id.slice(0, 8) : ''}
                   </p>
                 </div>
               </div>

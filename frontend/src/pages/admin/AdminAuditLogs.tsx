@@ -64,7 +64,9 @@ export default function AdminAuditLogs() {
                     </td>
                     <td className="py-3.5 px-4 font-bold text-stone-900">{log.admin?.full_name || 'Admin'}</td>
                     <td className="py-3.5 px-4 font-semibold text-stone-700">{log.target_type}</td>
-                    <td className="py-3.5 px-4 font-mono text-stone-500 text-[11px]">{log.target_id.slice(0, 16)}...</td>
+                    <td className="py-3.5 px-4 font-mono text-stone-500 text-[11px]">
+                      {log.target_id ? `${log.target_id.slice(0, 16)}...` : '—'}
+                    </td>
                     <td className="py-3.5 px-4 text-stone-600 max-w-xs truncate">{log.reason || '—'}</td>
                     <td className="py-3.5 px-4 text-stone-400 whitespace-nowrap">
                       {new Date(log.created_at).toLocaleString()}
