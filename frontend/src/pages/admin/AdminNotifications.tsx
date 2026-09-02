@@ -13,23 +13,25 @@ import {
   RefreshCw,
   CheckCircle2,
 } from 'lucide-react'
-import toast from 'react-hot-toast'
 
 export default function AdminNotifications() {
   const [notifications, setNotifications] = useState<AdminNotificationItem[]>([])
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const loadNotifications = async (manual = false) => {
     if (manual) setIsRefreshing(true)
     else setIsLoading(true)
+    setError(null)
 
     try {
       const data = await adminService.getAdminNotifications()
       setNotifications(data || [])
     } catch {
-      toast.error('Failed to load system notifications')
+      setError('Unable to reach notifications service. The server may be warming up.')
+      setNotifications([])
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)
@@ -138,6 +140,21 @@ export default function AdminNotifications() {
             <p className="text-xs text-stone-400 font-bold uppercase tracking-wider">
               Gathering Platform Alerts...
             </p>
+          </div>
+        ) : error ? (
+          <div className="p-12 text-center space-y-3 bg-white rounded-3xl border border-stone-200 shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+              <RefreshCw className="w-6 h-6" />
+            </div>
+            <h3 className="text-sm font-bold text-stone-900">{error}</h3>
+            <button
+              type="button"
+              onClick={() => loadNotifications(true)}
+              className="px-4 py-2 rounded-xl bg-stone-900 text-white text-xs font-bold hover:bg-stone-800 transition-colors inline-flex items-center gap-1.5 shadow-xs"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Retry Sync</span>
+            </button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-16 text-center space-y-3 bg-white rounded-3xl border border-stone-200 shadow-xs">

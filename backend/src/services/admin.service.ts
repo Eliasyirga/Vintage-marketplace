@@ -812,95 +812,107 @@ export async function getSellerAnalytics() {
 // ── Admin Actionable Notifications ────────────────────────────────────────────
 
 export async function getAdminNotifications() {
-  const [pendingReports, pendingVerifications, pendingAds, recentFailedPayments] = await Promise.all([
-    Report.findAll({
-      where: { status: { [Op.in]: ['PENDING', 'UNDER_REVIEW'] } },
-      attributes: ['id', 'reason', 'priority', 'target_type', 'created_at'],
-      order: [['created_at', 'DESC']],
-      limit: 10,
-    }),
-    UserVerification.findAll({
-      where: { status: 'PENDING' },
-      attributes: ['id', 'user_id', 'verification_type', 'created_at'],
-      include: [{ model: User, as: 'user', attributes: ['id', 'full_name', 'email'] }],
-      order: [['created_at', 'DESC']],
-      limit: 10,
-    }),
-    Advertisement.findAll({
-      where: { status: 'PENDING_REVIEW' },
-      attributes: ['id', 'title', 'placement', 'created_at'],
-      order: [['created_at', 'DESC']],
-      limit: 10,
-    }),
-    Payment.findAll({
-      where: { status: 'FAILED' },
-      attributes: ['id', 'reference', 'amount', 'currency', 'purpose', 'created_at'],
-      include: [{ model: User, as: 'user', attributes: ['id', 'full_name', 'email'] }],
-      order: [['created_at', 'DESC']],
-      limit: 10,
-    }),
-  ])
+  try {
+    const [reportsRes, verifsRes, adsRes, paymentsRes] = await Promise.allSettled([
+      Report.findAll({
+        where: { status: { [Op.in]: ['PENDING', 'UNDER_REVIEW'] } },
+        attributes: ['id', 'reason', 'priority', 'target_type', 'created_at'],
+        order: [['created_at', 'DESC']],
+        limit: 10,
+      }),
+      UserVerification.findAll({
+        where: { status: 'PENDING' },
+        attributes: ['id', 'user_id', 'verification_type', 'created_at'],
+        include: [{ model: User, as: 'user', attributes: ['id', 'full_name', 'email'] }],
+        order: [['created_at', 'DESC']],
+        limit: 10,
+      }),
+      Advertisement.findAll({
+        where: { status: 'PENDING_REVIEW' },
+        attributes: ['id', 'title', 'placement', 'created_at'],
+        order: [['created_at', 'DESC']],
+        limit: 10,
+      }),
+      Payment.findAll({
+        where: { status: 'FAILED' },
+        attributes: ['id', 'reference', 'amount', 'currency', 'purpose', 'created_at'],
+        include: [{ model: User, as: 'user', attributes: ['id', 'full_name', 'email'] }],
+        order: [['created_at', 'DESC']],
+        limit: 10,
+      }),
+    ])
 
-  const notifications: Array<{
-    id: string
-    title: string
-    message: string
-    category: 'REPORT' | 'VERIFICATION' | 'ADVERTISEMENT' | 'PAYMENT'
-    priority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'INFO'
-    link: string
-    createdAt: Date
-  }> = []
+    const pendingReports = reportsRes.status === 'fulfilled' ? reportsRes.value : []
+    const pendingVerifications = verifsRes.status === 'fulfilled' ? verifsRes.value : []
+    const pendingAds = adsRes.status === 'fulfilled' ? adsRes.value : []
+    const recentFailedPayments = paymentsRes.status === 'fulfilled' ? paymentsRes.value : []
 
-  for (const r of pendingReports) {
-    notifications.push({
-      id: `report-${r.id}`,
-      title: `Safety Flag: ${r.reason.replace(/_/g, ' ')}`,
-      message: `Pending triage for reported ${r.target_type.toLowerCase()}`,
-      category: 'REPORT',
-      priority: r.priority === 'CRITICAL' ? 'CRITICAL' : r.priority === 'HIGH' ? 'HIGH' : 'MEDIUM',
-      link: '/admin/reports',
-      createdAt: r.created_at,
-    })
+    const notifications: Array<{
+      id: string
+      title: string
+      message: string
+      category: 'REPORT' | 'VERIFICATION' | 'ADVERTISEMENT' | 'PAYMENT'
+      priority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'INFO'
+      link: string
+      createdAt: Date
+    }> = []
+
+    for (const r of pendingReports) {
+      const reasonText = (r.reason || 'Safety Flag').replace(/_/g, ' ')
+      const targetText = (r.target_type || 'item').toLowerCase()
+      notifications.push({
+        id: `report-${r.id}`,
+        title: `Safety Flag: ${reasonText}`,
+        message: `Pending triage for reported ${targetText}`,
+        category: 'REPORT',
+        priority: r.priority === 'CRITICAL' ? 'CRITICAL' : r.priority === 'HIGH' ? 'HIGH' : 'MEDIUM',
+        link: '/admin/reports',
+        createdAt: r.created_at || new Date(),
+      })
+    }
+
+    for (const v of pendingVerifications) {
+      const vType = v.verification_type === 'NATIONAL_ID' ? 'National ID / Fayda' : (v.verification_type || 'Identity')
+      notifications.push({
+        id: `verif-${v.id}`,
+        title: 'Identity Verification Submission',
+        message: `${(v as any).user?.full_name || 'User'} requested ${vType} verification`,
+        category: 'VERIFICATION',
+        priority: 'MEDIUM',
+        link: '/admin/verifications',
+        createdAt: v.created_at || new Date(),
+      })
+    }
+
+    for (const a of pendingAds) {
+      notifications.push({
+        id: `ad-${a.id}`,
+        title: 'Ad Placement Approval Request',
+        message: `Sponsored campaign "${a.title || 'Advertisement'}" (${a.placement || 'Slot'}) awaiting moderation`,
+        category: 'ADVERTISEMENT',
+        priority: 'MEDIUM',
+        link: '/admin/advertisements',
+        createdAt: a.created_at || new Date(),
+      })
+    }
+
+    for (const p of recentFailedPayments) {
+      notifications.push({
+        id: `pay-${p.id}`,
+        title: 'Chapa Payment Failure',
+        message: `Payment of ${p.currency || 'ETB'} ${p.amount || 0} failed for ${(p as any).user?.full_name || 'User'} (${p.purpose || 'Transaction'})`,
+        category: 'PAYMENT',
+        priority: 'HIGH',
+        link: '/admin/payments',
+        createdAt: p.created_at || new Date(),
+      })
+    }
+
+    return notifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  } catch (err) {
+    console.error('getAdminNotifications error:', err)
+    return []
   }
-
-  for (const v of pendingVerifications) {
-    notifications.push({
-      id: `verif-${v.id}`,
-      title: 'Identity Verification Submission',
-      message: `${(v as any).user?.full_name || 'User'} requested ${v.verification_type === 'NATIONAL_ID' ? 'National ID / Fayda' : v.verification_type} verification`,
-      category: 'VERIFICATION',
-      priority: 'MEDIUM',
-      link: '/admin/verifications',
-      createdAt: v.created_at,
-    })
-  }
-
-  for (const a of pendingAds) {
-    notifications.push({
-      id: `ad-${a.id}`,
-      title: 'Ad Placement Approval Request',
-      message: `Sponsored campaign "${a.title}" (${a.placement}) awaiting moderation`,
-      category: 'ADVERTISEMENT',
-      priority: 'MEDIUM',
-      link: '/admin/advertisements',
-      createdAt: a.created_at,
-    })
-  }
-
-  for (const p of recentFailedPayments) {
-    notifications.push({
-      id: `pay-${p.id}`,
-      title: 'Chapa Payment Failure',
-      message: `Payment of ${p.currency} ${p.amount} failed for ${(p as any).user?.full_name || 'User'} (${p.purpose})`,
-      category: 'PAYMENT',
-      priority: 'HIGH',
-      link: '/admin/payments',
-      createdAt: p.created_at,
-    })
-  }
-
-  // Sort by latest first
-  return notifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 }
 
 // ── System Operational Settings ───────────────────────────────────────────────
