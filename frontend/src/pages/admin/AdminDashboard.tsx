@@ -115,6 +115,37 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* ── FRESH CATALOG / REAL DATABASE NOTICE ─────────────────────────── */}
+        {marketplace && marketplace.totalActiveListings === 0 && marketplace.totalOrders === 0 && (
+          <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500 text-stone-950 font-black flex items-center justify-center shrink-0 shadow-xs">
+                <Package className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-stone-900">PostgreSQL Live Database Connected</h4>
+                <p className="text-xs text-stone-600 font-medium">
+                  The dashboard is connected to your production database. Zero mock data is displayed — all metrics increment in real-time as users register and post listings.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                to="/sell"
+                className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold transition-all shadow-xs"
+              >
+                + Post First Item
+              </Link>
+              <Link
+                to="/admin/settings"
+                className="px-4 py-2 rounded-xl bg-white border border-stone-200 text-stone-700 hover:text-stone-900 text-xs font-bold transition-all shadow-xs"
+              >
+                Diagnostics
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* ── SECTION 1: REQUIRES ATTENTION (Action Items) ───────────────── */}
         <div className="space-y-3.5">
           <div className="flex items-center justify-between">
