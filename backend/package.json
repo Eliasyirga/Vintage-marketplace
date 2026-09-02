@@ -6,6 +6,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "seed:demo": "ts-node -r dotenv/config src/scripts/seedDemoData.ts",
     "seed:marketplace": "ts-node -r dotenv/config src/scripts/seedMarketplaceData.ts",
     "seed:dev-ads": "ts-node -r dotenv/config src/scripts/seedDevAdvertisements.ts"
   },
