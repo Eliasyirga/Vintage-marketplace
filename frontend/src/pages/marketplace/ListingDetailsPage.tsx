@@ -18,6 +18,7 @@ import { RatingStars } from '../../components/reviews/RatingStars'
 import { ReviewList } from '../../components/reviews/ReviewList'
 import { ReviewFormModal } from '../../components/reviews/ReviewFormModal'
 import { SimilarProducts } from '../../components/recommendations/SimilarProducts'
+import { AdvertisementSlot } from '../../components/advertisements/AdvertisementSlot'
 import { checkBuyNowEligibility } from '../../services/order.service'
 import {
   MapPin,
@@ -483,6 +484,11 @@ export default function ListingDetailsPage() {
                 )}
               </div>
             </div>
+
+            {/* Sponsored Sidebar Placement (MARKETPLACE_SIDEBAR) */}
+            <div className="pt-2">
+              <AdvertisementSlot placement="MARKETPLACE_SIDEBAR" />
+            </div>
           </div>
         </div>
 
@@ -529,12 +535,22 @@ export default function ListingDetailsPage() {
           />
         </div>
 
+        {/* In-Feed Sponsored Placement (MARKETPLACE_FEATURED) */}
+        <div className="pt-6 border-t border-stone-200">
+          <AdvertisementSlot placement="MARKETPLACE_FEATURED" />
+        </div>
+
         {/* Similar Products */}
         {listing.status === 'ACTIVE' && (
           <div className="pt-8 border-t border-stone-200">
             <SimilarProducts listingId={listing.id} limit={8} />
           </div>
         )}
+
+        {/* Sponsored Banner Placement (MARKETPLACE_BANNER) */}
+        <div className="pt-6 border-t border-stone-200">
+          <AdvertisementSlot placement="MARKETPLACE_BANNER" />
+        </div>
 
         {/* Recently Viewed Section */}
         <div className="pt-6 border-t border-stone-200">
