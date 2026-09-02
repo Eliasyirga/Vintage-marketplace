@@ -37,6 +37,7 @@ import {
   Star,
   MessageSquarePlus,
   ShoppingBag,
+  Phone,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -407,6 +408,16 @@ export default function ListingDetailsPage() {
                     <MessageSquare className="w-4 h-4 text-stone-500" />
                     <span>Contact Seller</span>
                   </button>
+
+                  {listing.seller.phone && (
+                    <a
+                      href={`tel:${listing.seller.phone}`}
+                      className="w-full py-2.5 px-4 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-xs flex items-center justify-center gap-2 transition-colors"
+                    >
+                      <Phone className="w-4 h-4 text-emerald-600" />
+                      <span>Direct Phone Call ({listing.seller.phone})</span>
+                    </a>
+                  )}
                 </div>
               )}
             </div>
@@ -572,11 +583,22 @@ export default function ListingDetailsPage() {
           <button
             type="button"
             onClick={() => setIsContactModalOpen(true)}
-            className="py-3 px-3.5 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-colors"
+            className="py-3 px-3 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-colors"
           >
             <MessageSquare className="w-4 h-4 text-stone-500" />
             <span>Chat</span>
           </button>
+
+          {listing.seller.phone && (
+            <a
+              href={`tel:${listing.seller.phone}`}
+              className="py-3 px-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-colors"
+              title={`Call ${listing.seller.fullName}`}
+            >
+              <Phone className="w-4 h-4 text-emerald-600" />
+              <span>Call</span>
+            </a>
+          )}
 
           <button
             type="button"

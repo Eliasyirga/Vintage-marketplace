@@ -53,6 +53,7 @@ function formatPublicProfile(user: User, profile: SellerProfile | null): PublicS
     isEmailVerified: user.is_email_verified,
     isPhoneVerified: user.is_phone_verified,
     isFaydaVerified: user.is_fayda_verified,
+    phone: user.phone ?? null,
     activeListings: 0,  // populated by caller
     soldListings: 0,    // populated by caller
   }
@@ -66,6 +67,7 @@ export async function getPublicSellerProfile(sellerId: string): Promise<PublicSe
       'id',
       'full_name',
       'avatar_url',
+      'phone',
       'is_email_verified',
       'is_phone_verified',
       'is_fayda_verified',

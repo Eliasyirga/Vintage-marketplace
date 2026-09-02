@@ -66,6 +66,7 @@ export interface SafeSeller {
   id: string;
   fullName: string;
   avatarUrl: string | null;
+  phone?: string | null;
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
   isFaydaVerified: boolean;

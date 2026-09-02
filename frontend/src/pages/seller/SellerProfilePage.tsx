@@ -27,6 +27,7 @@ import {
   Star,
   Flag,
   MessageSquarePlus,
+  Phone,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -203,6 +204,15 @@ export default function SellerProfilePage() {
                     </Link>
                   ) : (
                     <>
+                      {profile.phone && (
+                        <a
+                          href={`tel:${profile.phone}`}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors shadow-2xs"
+                        >
+                          <Phone className="w-3.5 h-3.5" />
+                          <span>Direct Call ({profile.phone})</span>
+                        </a>
+                      )}
                       {listings.length > 0 && isAuthenticated && (
                         <button
                           type="button"
