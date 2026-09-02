@@ -17,7 +17,9 @@ import {
   Subscription,
   Entitlement,
   SellerProfile,
+  Advertisement,
 } from '../models'
+import { env } from '../config/env'
 import { AppError } from '../middleware/error.middleware'
 import type { UserStatus } from '../types/auth.types'
 
@@ -651,3 +653,291 @@ export async function getAuditLogs(filters: { page?: number; limit?: number; adm
     },
   }
 }
+
+// ── Global Admin Search ───────────────────────────────────────────────────────
+
+export async function globalSearch(query: string) {
+  const q = String(query || '').trim()
+  if (!q) {
+    return { users: [], listings: [], orders: [], payments: [], advertisements: [] }
+  }
+
+  const [users, listings, orders, payments, advertisements] = await Promise.all([
+    User.findAll({
+      where: {
+        [Op.or]: [
+          { full_name: { [Op.iLike]: `%${q}%` } },
+          { email: { [Op.iLike]: `%${q}%` } },
+          { phone: { [Op.iLike]: `%${q}%` } },
+        ],
+      },
+      attributes: ['id', 'full_name', 'email', 'phone', 'role', 'status', 'avatar_url', 'created_at'],
+      limit: 6,
+      order: [['created_at', 'DESC']],
+    }),
+    Listing.findAll({
+      where: {
+        [Op.or]: [
+          { title: { [Op.iLike]: `%${q}%` } },
+          { description: { [Op.iLike]: `%${q}%` } },
+        ],
+      },
+      paranoid: false,
+      attributes: ['id', 'title', 'price', 'status', 'created_at'],
+      include: [
+        { model: ListingImage, as: 'images', attributes: ['image_url', 'is_primary'], limit: 1 },
+      ],
+      limit: 6,
+      order: [['created_at', 'DESC']],
+    }),
+    Order.findAll({
+      where: {
+        [Op.or]: [
+          { order_number: { [Op.iLike]: `%${q}%` } },
+          { id: { [Op.iLike]: `%${q}%` } },
+        ],
+      },
+      attributes: ['id', 'order_number', 'total_amount', 'status', 'payment_status', 'created_at'],
+      include: [
+        { model: User, as: 'buyer', attributes: ['id', 'full_name'] },
+        { model: User, as: 'seller', attributes: ['id', 'full_name'] },
+      ],
+      limit: 6,
+      order: [['created_at', 'DESC']],
+    }),
+    Payment.findAll({
+      where: {
+        [Op.or]: [
+          { reference: { [Op.iLike]: `%${q}%` } },
+          { provider_reference: { [Op.iLike]: `%${q}%` } },
+        ],
+      },
+      attributes: ['id', 'reference', 'amount', 'currency', 'purpose', 'status', 'created_at'],
+      include: [
+        { model: User, as: 'user', attributes: ['id', 'full_name', 'email'] },
+      ],
+      limit: 6,
+      order: [['created_at', 'DESC']],
+    }),
+    Advertisement.findAll({
+      where: {
+        title: { [Op.iLike]: `%${q}%` },
+      },
+      attributes: ['id', 'title', 'placement', 'status', 'created_at'],
+      limit: 6,
+      order: [['created_at', 'DESC']],
+    }),
+  ])
+
+  return {
+    users: users.map((u) => u.toSafeObject()),
+    listings,
+    orders,
+    payments,
+    advertisements,
+  }
+}
+
+// ── Seller Analytics & Limit Insights ─────────────────────────────────────────
+
+export async function getSellerAnalytics() {
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+  // 1. Sellers with listing counts
+  const listingStats = await Listing.findAll({
+    attributes: [
+      'seller_id',
+      [fn('COUNT', col('id')), 'totalListings'],
+      [fn('COUNT', literal(`CASE WHEN status = 'ACTIVE' THEN 1 END`)), 'activeListings'],
+      [fn('COUNT', literal(`CASE WHEN status = 'SOLD' THEN 1 END`)), 'soldListings'],
+    ],
+    paranoid: false,
+    group: ['seller_id'],
+    order: [[fn('COUNT', col('id')), 'DESC']],
+    limit: 50,
+    raw: true,
+  })
+
+  const sellerIds = (listingStats as any[]).map((s) => s.seller_id)
+
+  const sellers = await User.findAll({
+    where: { id: { [Op.in]: sellerIds } },
+    attributes: ['id', 'full_name', 'email', 'phone', 'is_fayda_verified', 'created_at', 'status'],
+    include: [
+      { model: BusinessProfile, as: 'businessProfile', attributes: ['id', 'business_name', 'registration_status'] },
+    ],
+  })
+
+  const sellerMap = new Map(sellers.map((s) => [s.id, s]))
+
+  const formattedSellers = (listingStats as any[]).map((s) => {
+    const user = sellerMap.get(s.seller_id)
+    const isBusiness = !!(user as any)?.businessProfile
+    const quota = isBusiness ? 50 : 10
+    const totalListings = Number(s.totalListings || 0)
+    const activeListings = Number(s.activeListings || 0)
+    const soldListings = Number(s.soldListings || 0)
+
+    return {
+      userId: s.seller_id,
+      fullName: user?.full_name || 'Seller',
+      email: user?.email || '',
+      phone: user?.phone || '',
+      isFaydaVerified: user?.is_fayda_verified || false,
+      accountType: isBusiness ? 'BUSINESS' : 'BASIC',
+      status: user?.status || 'ACTIVE',
+      totalListings,
+      activeListings,
+      soldListings,
+      quota,
+      quotaPercent: Math.min(100, Math.round((totalListings / quota) * 100)),
+      isNearLimit: !isBusiness && totalListings >= 8,
+      createdAt: user?.created_at,
+    }
+  })
+
+  // Users near limit (e.g. 8/10, 9/10, 10/10)
+  const usersNearLimit = formattedSellers.filter((s) => s.isNearLimit)
+  // Top sellers by active catalog
+  const topSellers = [...formattedSellers].sort((a, b) => b.activeListings - a.activeListings).slice(0, 10)
+
+  return {
+    topSellers,
+    usersNearLimit,
+    totalTrackedSellers: sellerIds.length,
+  }
+}
+
+// ── Admin Actionable Notifications ────────────────────────────────────────────
+
+export async function getAdminNotifications() {
+  const [pendingReports, pendingVerifications, pendingAds, recentFailedPayments] = await Promise.all([
+    Report.findAll({
+      where: { status: { [Op.in]: ['PENDING', 'UNDER_REVIEW'] } },
+      attributes: ['id', 'reason', 'priority', 'target_type', 'created_at'],
+      order: [['created_at', 'DESC']],
+      limit: 10,
+    }),
+    UserVerification.findAll({
+      where: { status: 'PENDING' },
+      attributes: ['id', 'user_id', 'verification_type', 'created_at'],
+      include: [{ model: User, as: 'user', attributes: ['id', 'full_name', 'email'] }],
+      order: [['created_at', 'DESC']],
+      limit: 10,
+    }),
+    Advertisement.findAll({
+      where: { status: 'PENDING_REVIEW' },
+      attributes: ['id', 'title', 'placement', 'created_at'],
+      order: [['created_at', 'DESC']],
+      limit: 10,
+    }),
+    Payment.findAll({
+      where: { status: 'FAILED' },
+      attributes: ['id', 'reference', 'amount', 'currency', 'purpose', 'created_at'],
+      include: [{ model: User, as: 'user', attributes: ['id', 'full_name', 'email'] }],
+      order: [['created_at', 'DESC']],
+      limit: 10,
+    }),
+  ])
+
+  const notifications: Array<{
+    id: string
+    title: string
+    message: string
+    category: 'REPORT' | 'VERIFICATION' | 'ADVERTISEMENT' | 'PAYMENT'
+    priority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'INFO'
+    link: string
+    createdAt: Date
+  }> = []
+
+  for (const r of pendingReports) {
+    notifications.push({
+      id: `report-${r.id}`,
+      title: `Safety Flag: ${r.reason.replace(/_/g, ' ')}`,
+      message: `Pending triage for reported ${r.target_type.toLowerCase()}`,
+      category: 'REPORT',
+      priority: r.priority === 'CRITICAL' ? 'CRITICAL' : r.priority === 'HIGH' ? 'HIGH' : 'MEDIUM',
+      link: '/admin/reports',
+      createdAt: r.created_at,
+    })
+  }
+
+  for (const v of pendingVerifications) {
+    notifications.push({
+      id: `verif-${v.id}`,
+      title: 'Identity Verification Submission',
+      message: `${(v as any).user?.full_name || 'User'} requested ${v.verification_type === 'NATIONAL_ID' ? 'National ID / Fayda' : v.verification_type} verification`,
+      category: 'VERIFICATION',
+      priority: 'MEDIUM',
+      link: '/admin/verifications',
+      createdAt: v.created_at,
+    })
+  }
+
+  for (const a of pendingAds) {
+    notifications.push({
+      id: `ad-${a.id}`,
+      title: 'Ad Placement Approval Request',
+      message: `Sponsored campaign "${a.title}" (${a.placement}) awaiting moderation`,
+      category: 'ADVERTISEMENT',
+      priority: 'MEDIUM',
+      link: '/admin/advertisements',
+      createdAt: a.created_at,
+    })
+  }
+
+  for (const p of recentFailedPayments) {
+    notifications.push({
+      id: `pay-${p.id}`,
+      title: 'Chapa Payment Failure',
+      message: `Payment of ${p.currency} ${p.amount} failed for ${(p as any).user?.full_name || 'User'} (${p.purpose})`,
+      category: 'PAYMENT',
+      priority: 'HIGH',
+      link: '/admin/payments',
+      createdAt: p.created_at,
+    })
+  }
+
+  // Sort by latest first
+  return notifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+}
+
+// ── System Operational Settings ───────────────────────────────────────────────
+
+export async function getSystemSettings() {
+  const [totalUsers, totalListings, totalOrders, totalPayments] = await Promise.all([
+    User.count(),
+    Listing.count({ paranoid: false }),
+    Order.count(),
+    Payment.count(),
+  ])
+
+  return {
+    gateway: {
+      provider: 'CHAPA',
+      currency: 'ETB (Ethiopian Birr)',
+      mode: env.CHAPA_MODE,
+      enabled: env.CHAPA_ENABLED,
+      totalPaymentsProcessed: totalPayments,
+    },
+    faydaOidc: {
+      provider: 'Fayda eSignet IDP',
+      endpoint: env.FAYDA_AUTHORIZATION_URL,
+      sandboxMode: env.FAYDA_SANDBOX_MODE,
+      status: env.FAYDA_SANDBOX_MODE ? 'SANDBOX_ACTIVE' : env.FAYDA_ENABLED ? 'CONNECTED' : 'STANDBY',
+    },
+    marketplaceLimits: {
+      basicUserListingCap: 10,
+      businessStoreListingCap: 50,
+      imageUploadLimitMB: 5,
+      platformCommissionRate: '2.5%',
+    },
+    platformStats: {
+      totalUsers,
+      totalListings,
+      totalOrders,
+    },
+  }
+}
+

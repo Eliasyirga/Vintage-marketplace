@@ -291,3 +291,78 @@ export interface AdminAuditLogItem {
     full_name: string
   }
 }
+
+export interface GlobalSearchResults {
+  users: AdminUserItem[]
+  listings: AdminListingItem[]
+  orders: AdminOrderItem[]
+  payments: AdminPaymentItem[]
+  advertisements: Array<{
+    id: string
+    title: string
+    placement: string
+    status: string
+    created_at: string
+  }>
+}
+
+export interface TrackedSellerItem {
+  userId: string
+  fullName: string
+  email: string
+  phone: string
+  isFaydaVerified: boolean
+  accountType: 'BASIC' | 'BUSINESS'
+  status: string
+  totalListings: number
+  activeListings: number
+  soldListings: number
+  quota: number
+  quotaPercent: number
+  isNearLimit: boolean
+  createdAt: string
+}
+
+export interface SellerAnalyticsResult {
+  topSellers: TrackedSellerItem[]
+  usersNearLimit: TrackedSellerItem[]
+  totalTrackedSellers: number
+}
+
+export interface AdminNotificationItem {
+  id: string
+  title: string
+  message: string
+  category: 'REPORT' | 'VERIFICATION' | 'ADVERTISEMENT' | 'PAYMENT'
+  priority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'INFO'
+  link: string
+  createdAt: string
+}
+
+export interface SystemSettings {
+  gateway: {
+    provider: string
+    currency: string
+    mode: string
+    enabled: boolean
+    totalPaymentsProcessed: number
+  }
+  faydaOidc: {
+    provider: string
+    endpoint: string
+    sandboxMode: boolean
+    status: string
+  }
+  marketplaceLimits: {
+    basicUserListingCap: number
+    businessStoreListingCap: number
+    imageUploadLimitMB: number
+    platformCommissionRate: string
+  }
+  platformStats: {
+    totalUsers: number
+    totalListings: number
+    totalOrders: number
+  }
+}
+

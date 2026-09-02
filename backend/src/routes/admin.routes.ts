@@ -11,7 +11,17 @@ const requireAdmin = [requireAuth, authorizeRoles('ADMIN')]
 // ── Dashboard & Analytics ──────────────────────────────────────────────────────
 router.get('/dashboard/stats', ...requireAdmin, adminController.getDashboardStats)
 router.get('/analytics/timeseries', ...requireAdmin, adminController.getTimeseriesAnalytics)
+router.get('/analytics/sellers', ...requireAdmin, adminController.getSellerAnalytics)
 router.get('/analytics/risk', ...requireAdmin, adminController.getRiskSignals)
+
+// ── Global Search ─────────────────────────────────────────────────────────────
+router.get('/search', ...requireAdmin, adminController.globalSearch)
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+router.get('/notifications', ...requireAdmin, adminController.getAdminNotifications)
+
+// ── System Settings & Health ──────────────────────────────────────────────────
+router.get('/settings', ...requireAdmin, adminController.getSystemSettings)
 
 // ── Reports ──────────────────────────────────────────────────────────────────
 router.get('/reports', ...requireAdmin, adminController.getReports)
@@ -50,3 +60,4 @@ router.get('/reviews', ...requireAdmin, adminController.getReviews)
 router.get('/audit-logs', ...requireAdmin, adminController.getAuditLogs)
 
 export default router
+

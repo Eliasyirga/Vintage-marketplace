@@ -11,6 +11,10 @@ import type {
   AdminPaymentItem,
   AdminBusinessItem,
   AdminAuditLogItem,
+  GlobalSearchResults,
+  SellerAnalyticsResult,
+  AdminNotificationItem,
+  SystemSettings,
 } from '../types/admin'
 import type { ReportItem, ReportStatus, ReportPriority } from '../types/report'
 import type { UserVerificationItem } from '../types/verification'
@@ -206,3 +210,32 @@ export async function getAdminAuditLogs(params?: {
   const response = await api.get('/admin/audit-logs', { params })
   return response.data.data
 }
+
+// ── Global Search ─────────────────────────────────────────────────────────────
+
+export async function globalSearch(query: string): Promise<GlobalSearchResults> {
+  const response = await api.get('/admin/search', { params: { q: query } })
+  return response.data.data
+}
+
+// ── Seller Analytics ──────────────────────────────────────────────────────────
+
+export async function getSellerAnalytics(): Promise<SellerAnalyticsResult> {
+  const response = await api.get('/admin/analytics/sellers')
+  return response.data.data
+}
+
+// ── Admin Notifications ───────────────────────────────────────────────────────
+
+export async function getAdminNotifications(): Promise<AdminNotificationItem[]> {
+  const response = await api.get('/admin/notifications')
+  return response.data.data.notifications
+}
+
+// ── System Settings ───────────────────────────────────────────────────────────
+
+export async function getSystemSettings(): Promise<SystemSettings> {
+  const response = await api.get('/admin/settings')
+  return response.data.data.settings
+}
+

@@ -356,3 +356,49 @@ export async function getAuditLogs(req: Request, res: Response, next: NextFuncti
     next(err)
   }
 }
+
+// ── Global Search ─────────────────────────────────────────────────────────────
+
+export async function globalSearch(req: Request, res: Response, next: NextFunction) {
+  try {
+    const query = String(req.query.q ?? req.query.search ?? '')
+    const result = await adminService.globalSearch(query)
+    res.json({ success: true, data: result })
+  } catch (err) {
+    next(err)
+  }
+}
+
+// ── Seller Analytics ──────────────────────────────────────────────────────────
+
+export async function getSellerAnalytics(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await adminService.getSellerAnalytics()
+    res.json({ success: true, data: result })
+  } catch (err) {
+    next(err)
+  }
+}
+
+// ── Admin Notifications ───────────────────────────────────────────────────────
+
+export async function getAdminNotifications(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const notifications = await adminService.getAdminNotifications()
+    res.json({ success: true, data: { notifications } })
+  } catch (err) {
+    next(err)
+  }
+}
+
+// ── System Operational Settings ───────────────────────────────────────────────
+
+export async function getSystemSettings(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const settings = await adminService.getSystemSettings()
+    res.json({ success: true, data: { settings } })
+  } catch (err) {
+    next(err)
+  }
+}
+

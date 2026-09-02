@@ -17,6 +17,8 @@ import {
   Megaphone,
   AlertTriangle,
   ChevronRight,
+  Bell,
+  Settings,
 } from 'lucide-react'
 
 interface AdminSidebarProps {
@@ -38,6 +40,7 @@ export function AdminSidebar({
       items: [
         { label: 'Overview', to: '/admin', icon: LayoutDashboard, end: true },
         { label: 'Analytics', to: '/admin/analytics', icon: TrendingUp },
+        { label: 'Alerts & Queue', to: '/admin/notifications', icon: Bell },
       ],
     },
     {
@@ -65,6 +68,12 @@ export function AdminSidebar({
         { label: 'Risk & Abuse Radar', to: '/admin/risk', icon: AlertTriangle },
         { label: 'User Reviews', to: '/admin/reviews', icon: MessageSquare },
         { label: 'Audit Trail', to: '/admin/audit-logs', icon: History },
+      ],
+    },
+    {
+      title: 'GOVERNANCE & SETTINGS',
+      items: [
+        { label: 'Platform Settings', to: '/admin/settings', icon: Settings },
       ],
     },
   ]

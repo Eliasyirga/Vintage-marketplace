@@ -76,6 +76,8 @@ import AdminListings from './pages/admin/AdminListings'
 import AdminVerifications from './pages/admin/AdminVerifications'
 import AdminReviews from './pages/admin/AdminReviews'
 import AdminAuditLogs from './pages/admin/AdminAuditLogs'
+import AdminNotifications from './pages/admin/AdminNotifications'
+import AdminSettings from './pages/admin/AdminSettings'
 
 function App() {
   return (
@@ -314,6 +316,30 @@ function App() {
               <ProtectedRoute>
                 <RoleRoute roles={['ADMIN']}>
                   <AdminVerifications />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/verification"
+            element={<Navigate to="/admin/verifications" replace />}
+          />
+          <Route
+            path="/admin/notifications"
+            element={
+              <ProtectedRoute>
+                <RoleRoute roles={['ADMIN']}>
+                  <AdminNotifications />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/settings"
+            element={
+              <ProtectedRoute>
+                <RoleRoute roles={['ADMIN']}>
+                  <AdminSettings />
                 </RoleRoute>
               </ProtectedRoute>
             }

@@ -1,28 +1,36 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { AdminLayout } from '../../components/admin/AdminLayout'
 import * as adminService from '../../services/admin.service'
-import type { TimeseriesDataPoint, AccountTierBreakdown } from '../../types/admin'
+import type { TimeseriesDataPoint, AccountTierBreakdown, SellerAnalyticsResult } from '../../types/admin'
 import {
   Users,
   Package,
   ShoppingCart,
   DollarSign,
   PieChart,
+  ShieldCheck,
+  AlertTriangle,
+  Award,
 } from 'lucide-react'
 
 export default function AdminAnalytics() {
   const [days, setDays] = useState<7 | 30 | 90>(30)
   const [timeseries, setTimeseries] = useState<TimeseriesDataPoint[]>([])
   const [tiers, setTiers] = useState<AccountTierBreakdown | null>(null)
+  const [sellerInsights, setSellerInsights] = useState<SellerAnalyticsResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     setIsLoading(true)
-    adminService
-      .getTimeseriesAnalytics(days)
-      .then((data) => {
+    Promise.all([
+      adminService.getTimeseriesAnalytics(days),
+      adminService.getSellerAnalytics(),
+    ])
+      .then(([data, sellers]) => {
         setTimeseries(data.timeseries || [])
         setTiers(data.tiers || null)
+        setSellerInsights(sellers || null)
       })
       .finally(() => setIsLoading(false))
   }, [days])
@@ -48,7 +56,7 @@ export default function AdminAnalytics() {
               Growth & Financial Performance
             </h2>
             <p className="text-xs text-stone-500 font-medium">
-              Calculated exclusively from verified database transactions and records
+              Calculated exclusively from verified database transactions and records (Chapa ETB)
             </p>
           </div>
 
@@ -123,11 +131,11 @@ export default function AdminAnalytics() {
           <div className="lg:col-span-2 bg-white border border-stone-200 rounded-3xl p-6 shadow-sm space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-black text-stone-900">Listing Inventory Volume</h3>
+                <h3 className="text-sm font-black text-stone-900">Listing Inventory Growth</h3>
                 <p className="text-xs text-stone-500 font-medium">Daily listing creation volume over time</p>
               </div>
               <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-xl">
-                Daily Trend
+                Daily Trajectory
               </span>
             </div>
 
@@ -153,7 +161,7 @@ export default function AdminAnalytics() {
                         {pt.date}: {pt.listings} listings
                       </div>
                       <div
-                        className="w-full bg-amber-500 hover:bg-amber-400 rounded-t-md transition-all duration-300"
+                        className="w-full bg-amber-500 hover:bg-amber-400 rounded-t-md transition-all duration-300 shadow-2xs"
                         style={{ height: `${heightPercent}%` }}
                       />
                     </div>
@@ -238,7 +246,107 @@ export default function AdminAnalytics() {
             </div>
           </div>
         </div>
+
+        {/* ── SECTION: SELLER INSIGHTS & QUOTA UTILIZATION ── */}
+        {sellerInsights && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Top Active Sellers */}
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Award className="w-4 h-4 text-amber-500" />
+                  <h3 className="text-sm font-black text-stone-900">Top Active Sellers</h3>
+                </div>
+                <span className="text-xs text-stone-400 font-semibold font-mono">
+                  {sellerInsights.totalTrackedSellers} total sellers
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {sellerInsights.topSellers.slice(0, 5).map((seller) => (
+                  <div
+                    key={seller.userId}
+                    className="p-3 rounded-2xl bg-stone-50 border border-stone-100 flex items-center justify-between text-xs"
+                  >
+                    <div className="min-w-0 pr-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-black text-stone-900 truncate">{seller.fullName}</span>
+                        {seller.isFaydaVerified && (
+                          <span title="Fayda Verified"><ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" /></span>
+                        )}
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-stone-200 text-stone-700">
+                          {seller.accountType}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-stone-400 truncate block">{seller.email || seller.phone}</span>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="font-black text-amber-700 block">{seller.activeListings} active</span>
+                      <span className="text-[10px] text-stone-400 block">{seller.soldListings} sold</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Users Near Listing Limit */}
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                  <h3 className="text-sm font-black text-stone-900">Users Near Listing Cap (8-10 / 10)</h3>
+                </div>
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
+                  Basic Quota Monitor
+                </span>
+              </div>
+
+              {sellerInsights.usersNearLimit.length === 0 ? (
+                <div className="p-8 text-center text-xs text-stone-400 font-medium">
+                  No basic users are currently near their 10-listing cap limit.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {sellerInsights.usersNearLimit.map((seller) => (
+                    <div
+                      key={seller.userId}
+                      className="p-3 rounded-2xl bg-amber-50/40 border border-amber-200/80 space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-stone-900 truncate max-w-[180px]">{seller.fullName}</span>
+                        <span className="font-black text-amber-800 font-mono">
+                          {seller.totalListings} / {seller.quota} ({seller.quotaPercent}%)
+                        </span>
+                      </div>
+
+                      <div className="w-full bg-stone-200 h-2 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${
+                            seller.totalListings >= 10 ? 'bg-red-500' : 'bg-amber-500'
+                          }`}
+                          style={{ width: `${seller.quotaPercent}%` }}
+                        />
+                      </div>
+
+                      <div className="flex justify-between items-center text-[10px] text-stone-500">
+                        <span>{10 - seller.totalListings} slots remaining before limit</span>
+                        <Link
+                          to={`/admin/users?search=${encodeURIComponent(seller.email || seller.fullName)}`}
+                          className="font-bold text-amber-700 hover:underline"
+                        >
+                          View User &rarr;
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </AdminLayout>
   )
 }
+
