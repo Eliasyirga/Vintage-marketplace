@@ -26,9 +26,9 @@ export default function Pricing() {
       .finally(() => setLoading(false))
   }, [])
 
-  const subscriptionPlans = plans.filter(
-    (p) => p.type === 'PREMIUM' || p.type === 'BUSINESS',
-  )
+  const premiumPlan = plans.find((p) => p.type === 'PREMIUM' && p.isActive !== false)
+  const businessPlan = plans.find((p) => p.type === 'BUSINESS' && p.isActive !== false)
+  const subscriptionPlans = [premiumPlan, businessPlan].filter(Boolean) as Plan[]
   const verificationPlan = plans.find((p) => p.type === 'VERIFICATION')
 
   const handleSelectPlan = (plan: Plan) => {
