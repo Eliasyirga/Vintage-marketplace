@@ -19,7 +19,9 @@ function optional(name: string, fallback: string): string {
 export const env = {
   NODE_ENV: optional('NODE_ENV', 'development'),
   PORT: parseInt(optional('PORT', '5000'), 10),
-  CLIENT_URL: optional('CLIENT_URL', 'http://localhost:5173'),
+  get CLIENT_URL() {
+    return process.env['CLIENT_URL'] || (this.isProduction || process.env['RENDER'] ? 'https://vintage-marketplace-tau.vercel.app' : 'http://localhost:5173')
+  },
 
   // Database (Supports Neon PostgreSQL connection string or individual credentials)
   DATABASE_URL: optional('DATABASE_URL', optional('DB_URL', '')),
@@ -110,7 +112,14 @@ export const env = {
   },
   FAYDA_CLIENT_ID: optional('FAYDA_CLIENT_ID', ''),
   FAYDA_CLIENT_SECRET: optional('FAYDA_CLIENT_SECRET', ''),
-  FAYDA_REDIRECT_URI: optional('FAYDA_REDIRECT_URI', 'http://localhost:5000/api/verifications/fayda/callback'),
+  get FAYDA_REDIRECT_URI() {
+    return (
+      process.env['FAYDA_REDIRECT_URI'] ||
+      (this.isProduction || process.env['RENDER']
+        ? 'https://vintage-marketplace-6.onrender.com/api/verifications/fayda/callback'
+        : 'http://localhost:5000/api/verifications/fayda/callback')
+    )
+  },
   FAYDA_AUTHORIZATION_URL: optional('FAYDA_AUTHORIZATION_URL', 'https://esignet.ida.et/authorize'),
   FAYDA_TOKEN_URL: optional('FAYDA_TOKEN_URL', 'https://esignet.ida.et/v1/esignet/oauth/token'),
   FAYDA_JWKS_URL: optional('FAYDA_JWKS_URL', 'https://esignet.ida.et/v1/esignet/oauth/.well-known/jwks.json'),

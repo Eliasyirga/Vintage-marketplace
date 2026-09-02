@@ -54,7 +54,10 @@ export async function initiateFayda(req: Request, res: Response, next: NextFunct
 
 export async function faydaCallback(req: Request, res: Response, _next: NextFunction) {
   const { code, state, error, error_description } = req.query
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173'
+  const defaultClient = process.env.NODE_ENV === 'production' || process.env.RENDER
+    ? 'https://vintage-marketplace-tau.vercel.app'
+    : 'http://localhost:5173'
+  const clientUrl = (process.env.CLIENT_URL || defaultClient).replace(/\/$/, '')
 
   if (error) {
     const reason = encodeURIComponent(String(error_description || error))

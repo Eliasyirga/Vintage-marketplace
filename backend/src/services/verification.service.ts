@@ -4,6 +4,7 @@ import { sequelize } from '../config/database'
 import { UserVerification, User } from '../models'
 import type { VerificationType, VerificationStatus } from '../models/UserVerification'
 import { AppError } from '../middleware/error.middleware'
+import { env } from '../config/env'
 import * as faydaProvider from './fayda/fayda.provider'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -148,13 +149,24 @@ export async function completeFaydaVerification(
   code: string,
 ): Promise<{ success: boolean; userId: string }> {
   // Find the verification record by state token
-  const verification = await UserVerification.findOne({
+  let verification = await UserVerification.findOne({
     where: {
       fayda_state_token: stateToken,
       verification_type: 'NATIONAL_ID',
       status: 'PENDING',
     },
   })
+
+  // In sandbox / demo mode, allow fallback to latest pending verification
+  if (!verification && env.FAYDA_SANDBOX_MODE) {
+    verification = await UserVerification.findOne({
+      where: {
+        verification_type: 'NATIONAL_ID',
+        status: 'PENDING',
+      },
+      order: [['created_at', 'DESC']],
+    })
+  }
 
   if (!verification) {
     throw new AppError('Invalid or unknown verification state. Please start verification again.', 400)
