@@ -43,8 +43,9 @@ export default function Home() {
           <TrustFeatures />
         </SectionReveal>
 
+        {/* Compact Sponsor Banner Strip */}
         <SectionReveal delay={1}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
             <AdvertisementSlot placement="MARKETPLACE_BANNER" />
           </div>
         </SectionReveal>
@@ -55,13 +56,6 @@ export default function Home() {
 
         <SectionReveal>
           <FeaturedListings />
-        </SectionReveal>
-
-        {/* In-Feed Sponsored Placement (MARKETPLACE_FEATURED) */}
-        <SectionReveal delay={1}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <AdvertisementSlot placement="MARKETPLACE_FEATURED" />
-          </div>
         </SectionReveal>
 
         <SectionReveal delay={1}>
@@ -78,13 +72,6 @@ export default function Home() {
 
         <SectionReveal>
           <SellerCTA />
-        </SectionReveal>
-
-        {/* Sponsored Showcase (MARKETPLACE_SIDEBAR) */}
-        <SectionReveal delay={1}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <AdvertisementSlot placement="MARKETPLACE_SIDEBAR" />
-          </div>
         </SectionReveal>
 
         <SectionReveal delay={1}>
